@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>小红书评论采集</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body { 
+        font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; 
+        min-width: 760px; 
+        padding: 20px; 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #333;
+        line-height: 1.6;
+      }
+      
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      
+      h3 { 
+        font-size: 20px; 
+        margin-bottom: 20px;
+        text-align: center;
+        color: #4a5568;
+        font-weight: 600;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      
+      #commentList { 
+        max-height: 400px; 
+        overflow: auto; 
+        background: #f8fafc; 
+        border-radius: 12px; 
+        padding: 20px; 
+        font-size: 14px;
+        border: 2px solid #e2e8f0;
+        margin-bottom: 24px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      
+      #commentList::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      #commentList::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+      }
+      
+      #commentList::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      
+      #commentList::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      
+      #statusMsg { 
+        margin: 16px 0; 
+        color: #64748b; 
+        font-size: 14px; 
+        display: none;
+        text-align: center;
+        padding: 12px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        border-left: 4px solid #3b82f6;
+      }
+      
+      .button-group {
+        margin-bottom: 20px;
+      }
+      
+      .button-group h4 {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 12px;
+        text-align: center;
+        font-weight: 500;
+      }
+      
+      .download-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      
+      .download-row:last-child {
+        margin-bottom: 0;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 120px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+      
+      .btn:active {
+        transform: translateY(0);
+      }
+      
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+      }
+      
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #2563eb, #1e40af);
+      }
+      
+      .btn-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+      }
+      
+      .btn-success:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+      }
+      
+      .btn-warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+      }
+      
+      .btn-warning:hover {
+        background: linear-gradient(135deg, #d97706, #b45309);
+      }
+      
+      .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+      }
+      
+      .btn-danger:hover {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+      }
+      
+      .action-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      
+      .action-row:last-child {
+        margin-bottom: 0;
+      }
+      
+      .action-row .btn {
+        flex: 1;
+        min-width: 140px;
+        max-width: 180px;
+      }
+      
+      /* 品牌切换模块样式 */
+      .brand-switcher {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        display: none;
+      }
+      
+      .brand-switcher h4 {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 16px;
+        text-align: center;
+        font-weight: 500;
+      }
+      
+      .brand-selector {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      
+      .brand-tab {
+        padding: 8px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 20px;
+        background: white;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      
+      .brand-tab:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+      }
+      
+      .brand-tab.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+      }
+      
+      .brand-info {
+        text-align: center;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        font-size: 13px;
+        color: #475569;
+      }
+      
+      /* 模态框样式 */
+      #monitorFormModal { 
+        display: none;
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        overflow: auto;
+        backdrop-filter: blur(5px);
+      }
+      
+      .modal-content {
+        background: white;
+        padding: 32px;
+        border-radius: 16px;
+        min-width: 500px;
+        max-width: 600px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .modal-content h4 {
+        margin-bottom: 20px;
+        color: #1e293b;
+        font-size: 18px;
+        text-align: center;
+        font-weight: 600;
+      }
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+      
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: #475569;
+        font-weight: 500;
+        font-size: 14px;
+      }
+      
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        resize: vertical;
+        transition: border-color 0.2s ease;
+        font-family: inherit;
+      }
+      
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      
+      .form-group input[type="file"] {
+        width: 100%;
+        padding: 8px;
+        border: 2px dashed #cbd5e1;
+        border-radius: 8px;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .form-group input[type="file"]:hover {
+        border-color: #94a3b8;
+        background: #f1f5f9;
+      }
+      
+      #noteLinksInfo {
+        color: #64748b;
+        font-size: 13px;
+        margin-top: 8px;
+        padding: 8px;
+        background: #f1f5f9;
+        border-radius: 6px;
+        border-left: 3px solid #10b981;
+      }
+      
+      .modal-actions {
+        margin-top: 24px;
+        text-align: right;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+      
+      .modal-actions .btn {
+        min-width: 80px;
+      }
+      
+      /* 响应式设计 */
+      @media (max-width: 800px) {
+        body {
+          min-width: 600px;
+          padding: 16px;
+        }
+        
+        .container {
+          padding: 24px;
+          max-width: 600px;
+        }
+        
+        .download-row {
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        .action-row {
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        .action-row .btn {
+          max-width: 200px;
+        }
+        
+        .modal-content {
+          min-width: 400px;
+          padding: 24px;
+        }
+      }
+      
+      @media (max-width: 600px) {
+        body {
+          min-width: 400px;
+          padding: 12px;
+        }
+        
+        .container {
+          padding: 20px;
+          max-width: 400px;
+        }
+        
+        .modal-content {
+          min-width: 320px;
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h3>小红书评论采集 v2.1.2</h3>
+      
+      <!-- 添加监控区域 - 独立放在最顶部 -->
+      <div class="button-group">
+        <h4>➕ 添加监控</h4>
+        <div class="action-row">
+          <button id="addMonitorBtn" class="btn btn-success">添加品牌监控</button>
+        </div>
+      </div>
+      
+      <!-- 品牌切换模块 -->
+      <div id="brandSwitcher" class="brand-switcher">
+        <h4>🔄 品牌切换</h4>
+        <div class="brand-selector" id="brandSelector">
+          <!-- 品牌标签将动态生成 -->
+        </div>
+        <div class="brand-info" id="brandInfo">
+          <!-- 当前品牌信息将动态显示 -->
+        </div>
+      </div>
+      
+      <!-- 监控管理区域 -->
+      <div class="button-group">
+        <h4>🎯 监控管理</h4>
+        <div class="action-row">
+          <button id="editMonitorBtn" class="btn btn-warning">编辑监控</button>
+        </div>
+        <div class="action-row">
+          <button id="toggleMonitorBtn" class="btn btn-warning">开启监控</button>
+          <button id="startNowBtn" class="btn btn-success">立即采集</button>
+        </div>
+        <div class="action-row">
+          <button id="deleteMonitorBtn" class="btn btn-danger">删除监控</button>
+        </div>
+      </div>
+      
+      <!-- 数据下载区域 -->
+      <div class="button-group">
+        <h4>📥 数据下载</h4>
+        <div class="download-row">
+          <button id="downloadJsonBtn" class="btn btn-primary">下载JSON</button>
+          <button id="downloadExcelBtn" class="btn btn-primary">下载EXCEL</button>
+        </div>
+        <div class="download-row">
+          <button id="downloadTodayJsonBtn" class="btn btn-primary">下载当日JSON</button>
+          <button id="downloadTodayExcelBtn" class="btn btn-primary">下载当日EXCEL</button>
+        </div>
+        <div class="download-row">
+          <button id="downloadYesterdayJsonBtn" class="btn btn-primary">下载昨日JSON</button>
+          <button id="downloadYesterdayExcelBtn" class="btn btn-primary">下载昨日EXCEL</button>
+        </div>
+      </div>
+      
+      <!-- 笔记评论展示区域 -->
+      <div class="button-group">
+        <h4>📝 笔记评论展示</h4>
+        <div id="commentList">加载中...</div>
+        <div id="statusMsg"></div>
+      </div>
+    </div>
+    
+    <!-- 监控表单模态框 -->
+    <div id="monitorFormModal">
+      <div class="modal-content">
+        <h4>添加品牌监控</h4>
+        <div class="form-group">
+          <label>品牌/产品名：<span style="color:#ef4444;font-size:12px;">（必填）</span></label>
+          <input type="text" id="brandNameInput" placeholder="请输入品牌/产品名称..." />
+        </div>
+        <div class="form-group">
+          <label>品牌/产品介绍：<span style="color:#64748b;font-size:12px;">（选填）</span></label>
+          <textarea id="brandDescInput" rows="3" placeholder="请输入品牌/产品介绍信息..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>评论分析要求：<span style="color:#64748b;font-size:12px;">（选填）</span></label>
+          <textarea id="monitorReqInput" rows="3" placeholder="请输入评论分析要求...（可选）"></textarea>
+        </div>
+        <div class="form-group">
+          <label>笔记链接文件（xlsx）：</label>
+          <input type="file" id="noteFileInput" accept=".xlsx" />
+          <div id="noteLinksInfo"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="monitorFormCancelBtn" class="btn btn-warning">取消</button>
+          <button id="monitorFormConfirmBtn" class="btn btn-success">确认</button>
+        </div>
+      </div>
+    </div>
+    
+    <script src="xlsx.full.min.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html> 

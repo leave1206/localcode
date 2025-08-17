@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Xiaohongshu Comment Collector",
+  "version": "2.1.2",
+  "description": "自动采集小红书笔记评论内容，支持点赞数采集、Excel导出、时间统一化处理、增量采集和品牌监控",
+  "permissions": ["scripting", "activeTab", "storage", "alarms", "tabs"],
+  "host_permissions": [
+    "https://www.xiaohongshu.com/explore/*",
+    "https://www.xiaohongshu.com/discovery/item/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.xiaohongshu.com/explore/*",
+        "https://www.xiaohongshu.com/discovery/item/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "小红书评论采集 v2.1.2"
+  }
+} 
