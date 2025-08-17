@@ -1,0 +1,47 @@
+{
+  "summary": {
+    "totalTests": 3,
+    "passedTests": 0,
+    "failedTests": 3,
+    "successRate": "0.00"
+  },
+  "details": [
+    {
+      "name": "短文本测试",
+      "promptLength": 16,
+      "expectedTokens": "< 1000",
+      "tokenCount": 0,
+      "geminiCall": {
+        "success": true,
+        "duration": 111995,
+        "responseLength": 1987
+      },
+      "streamingCall": null,
+      "status": "failed",
+      "error": "Gemini调用失败: HTTP 500: Not Found"
+    },
+    {
+      "name": "中等长度测试",
+      "promptLength": 120,
+      "expectedTokens": "1000-5000",
+      "tokenCount": 0,
+      "geminiCall": null,
+      "streamingCall": null,
+      "status": "failed",
+      "error": "Gemini调用失败: HTTP 500: request to https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-06-05:generateContent?key=AIzaSyBaL_P8zTYS0UXYzgdO8wuE000lxM8NdN8 failed, reason: socket hang up"
+    },
+    {
+      "name": "长文本测试",
+      "promptLength": 2550,
+      "expectedTokens": "> 10000",
+      "tokenCount": 0,
+      "geminiCall": null,
+      "streamingCall": null,
+      "status": "failed",
+      "error": "Gemini调用失败: HTTP 500: request to https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-06-05:generateContent?key=AIzaSyBaL_P8zTYS0UXYzgdO8wuE000lxM8NdN8 failed, reason: socket hang up"
+    }
+  ],
+  "recommendations": [
+    "存在失败的测试，建议检查API密钥配置和网络连接"
+  ]
+}

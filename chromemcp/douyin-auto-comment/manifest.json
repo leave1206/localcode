@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Douyin Live Auto Comment",
+  "version": "1.0",
+  "description": "自动在抖音直播间评论",
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": ["https://live.douyin.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://live.douyin.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "编辑自动评论内容"
+  }
+} 

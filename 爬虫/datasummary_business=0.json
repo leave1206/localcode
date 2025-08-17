@@ -1,0 +1,67 @@
+{
+    "code": 0,
+    "success": true,
+    "msg": "成功",
+    "data": {
+        "mEngagementNum": 5125,
+        "noteType": [
+            {
+                "contentTag": "家居家装",
+                "percent": "6.9"
+            },
+            {
+                "contentTag": "科技数码",
+                "percent": "3.5"
+            }
+        ],
+        "videoReadBeyondRate": "67.5",
+        "fans30GrowthRate": "26.3",
+        "kolAdvantage": "品效型博主",
+        "mAccumImpNum": 568499,
+        "interactionBeyondRate": "99.3",
+        "responseRate": "94.7",
+        "easyConnect": true,
+        "mEngagementNumOld": 0,
+        "estimatePictureEngageCost": 0,
+        "mValidRawReadFeedNum": 504644,
+        "mCpuvNumCompare": 0,
+        "picReadCost": 0.3069355823114909,
+        "estimatePictureCpm": 0,
+        "estimateVideoCpmCompare": 47.05,
+        "videoReadCostCompare": 32.64,
+        "dateKey": "2025-05-25",
+        "noteNumber": 29,
+        "tradeNames": [
+            "食品饮料",
+            "母婴"
+        ],
+        "readMedianBeyondRate": "99.8",
+        "pictureReadBeyondRate": "99.7",
+        "estimatePictureEngageCostCompare": 0,
+        "estimateVideoEngageCost": 0.7263609756097561,
+        "estimatePictureCpuvCompare": 0,
+        "interactionMedian": 3668,
+        "fans30GrowthBeyondRate": "98.0",
+        "picReadCostCompare": 34.37,
+        "estimateVideoEngageCostCompare": 44.05,
+        "mValidRawReadFeedCompare": 99.8,
+        "mEngagementNumCompare": 99.21,
+        "estimateVideoCpm": 7.955335013781907,
+        "readMedian": 504644,
+        "activeDayInLast7": 7,
+        "inviteNum": 281,
+        "pictureReadCost": "90.5",
+        "mAccumImpCompare": 99.57,
+        "estimatePictureCpuv": 0,
+        "estimateVideoCpuv": 0,
+        "videoCase": 0,
+        "kolAdvantageHover": "外溢指标处于前20%水位",
+        "videoReadCostV2": 1.5085208582684029,
+        "estimateVideoCpuvCompare": 0,
+        "isActive": true,
+        "videoReadCost": "189.8",
+        "mCpuvNum": 0,
+        "estimatePictureCpmCompare": 0,
+        "pictureCase": 0
+    }
+}

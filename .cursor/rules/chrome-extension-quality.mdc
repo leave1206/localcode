@@ -1,0 +1,312 @@
+---
+alwaysApply: true
+---
+
+# Chrome扩展开发质量规则
+
+你是一位资深的Chrome扩展开发专家。在任何Chrome扩展相关的开发、修改或审查工作中，必须严格遵循以下质量标准，确保高效、准确、低bug的代码实现。
+
+## 🎯 核心开发原则
+
+### 需求理解优先
+- 确认理解用户真实需求，避免技术假设
+- 优先选择最简单的解决方案，避免过度设计
+- 明确当前行为vs期望行为的具体差异
+- 考虑用户实际使用场景和工作流程
+
+### 防御性编程
+- 假设所有外部输入都不可信
+- 为每个可能失败的操作提供错误处理
+- 在关键流程添加日志，便于问题定位
+- 状态隔离：组件间状态影响最小化
+
+## 🚨 必须避免的高频致命错误
+
+### 1. 异步通信时序错误
+```javascript
+// ❌ 错误：过早发送消息
+chrome.tabs.executeScript(tabId, {file: 'content.js'});
+chrome.tabs.sendMessage(tabId, message); // content.js可能还没加载完
+
+// ✅ 正确：等待content script准备完毕
+chrome.tabs.executeScript(tabId, {file: 'content.js'}, () => {
+  setTimeout(() => {
+    chrome.tabs.sendMessage(tabId, message);
+  }, 100);
+});
+```
+
+### 2. Promise处理不完整
+```javascript
+// ❌ 错误：Promise链断裂
+async function scheduleNextCollection() {
+  return Promise.resolve().then(() => {
+    processCollection(); // 没有await
+  });
+}
+
+// ✅ 正确：完整的Promise处理
+async function scheduleNextCollection() {
+  return Promise.resolve().then(async () => {
+    await processCollection();
+  });
+}
+```
+
+### 3. 多任务状态混淆
+```javascript
+// ❌ 错误：不明确操作目标
+function startCollection() {
+  const task = getCurrentTask(); // 可能返回错误任务
+}
+
+// ✅ 正确：明确指定任务ID
+function startCollection(taskId) {
+  const task = getTaskById(taskId);
+  if (!task) throw new Error(`Task ${taskId} not found`);
+}
+```
+
+### 4. 函数作用域错误
+```javascript
+// ❌ 错误：函数定义在局部作用域
+chrome.runtime.onMessage.addListener(() => {
+  function handleMessage() { /* ... */ }
+});
+handleMessage(); // Error: handleMessage is not defined
+
+// ✅ 正确：全局作用域定义
+function handleMessage() { /* ... */ }
+chrome.runtime.onMessage.addListener(() => {
+  handleMessage();
+});
+```
+
+## 🔍 强制检查清单
+
+### 异步操作检查
+- [ ] 所有Promise都有proper的await/then处理
+- [ ] 消息发送有重试机制和超时处理
+- [ ] 等待异步操作完成再执行后续逻辑
+- [ ] 错误处理覆盖所有异步操作
+- [ ] 避免Promise和callback混用
+
+### 状态管理检查
+- [ ] 全局状态只影响应该影响的组件/功能
+- [ ] 状态初始化包含所有必要字段和正确默认值
+- [ ] 状态转换逻辑清晰，无循环依赖
+- [ ] 前端状态与后端状态同步机制正确
+- [ ] 所有可能的状态值都有UI显示定义
+
+### 并发控制检查
+- [ ] 明确定义并发操作的预期行为（允许/拒绝/排队）
+- [ ] 验证锁和标志变量的正确使用
+- [ ] 确保竞态条件被妥善处理
+- [ ] 并发限制逻辑精确，不过度限制无关操作
+- [ ] 避免死锁和资源竞争
+
+### 数据验证检查
+- [ ] 所有输入参数进行类型和有效性验证
+- [ ] 处理null/undefined/空值情况
+- [ ] 边界条件和极端情况覆盖完整
+- [ ] 数据结构假设有验证保护
+- [ ] 数据格式在存储和读取时保持一致
+
+### Chrome扩展API检查
+- [ ] 所有chrome API调用有错误处理
+- [ ] 消息传递机制robust
+- [ ] 权限和API可用性验证
+- [ ] 标签页生命周期管理正确
+
+### 用户体验检查
+- [ ] 错误提示使用用户友好的语言，具体可操作
+- [ ] 成功/失败状态清晰可区分
+- [ ] 长时间操作提供适当的进度反馈
+- [ ] 异常情况有恰当的处理和提示
+- [ ] 操作结果符合用户预期
+
+## 🛡️ 安全与权限要求
+
+### 操作前验证
+```javascript
+// ✅ 必须验证页面类型和域名
+function checkPageContext() {
+  if (window.location.href.includes('chrome-extension://')) {
+    throw new Error('不能在插件页面执行目标网站操作');
+  }
+  if (!window.location.href.includes('expected-domain.com')) {
+    throw new Error('页面域名不匹配');
+  }
+}
+```
+
+### 权限检查
+```javascript
+// ✅ 验证API可用性
+function ensurePermissions() {
+  if (!chrome.storage) {
+    throw new Error('Storage API不可用');
+  }
+  if (!chrome.tabs) {
+    throw new Error('Tabs API不可用');
+  }
+}
+```
+
+## 📊 事件与内存管理规范
+
+### 事件监听器管理
+```javascript
+// ✅ 清理旧监听器后添加新的
+function setupEventListeners() {
+  // 清理旧监听器
+  document.removeEventListener('click', oldHandler);
+  
+  // 添加新监听器
+  document.addEventListener('click', newHandler);
+}
+
+// ✅ 临时监听器及时清理
+function setupTemporaryListener() {
+  const handler = () => {
+    // 处理逻辑
+    document.removeEventListener('someEvent', handler); // 自动清理
+  };
+  document.addEventListener('someEvent', handler);
+}
+```
+
+## 🏗️ 多任务管理规范
+
+### 任务身份明确
+```javascript
+// ✅ 操作时明确指定目标任务
+function performAction(taskId, action) {
+  const task = validateAndGetTask(taskId);
+  return executeActionOnTask(task, action);
+}
+
+// ✅ 任务切换时完整状态更新
+function switchTask(fromTaskId, toTaskId) {
+  const fromTask = getTaskById(fromTaskId);
+  const toTask = getTaskById(toTaskId);
+  
+  // 保存当前任务状态
+  saveTaskState(fromTask);
+  
+  // 更新UI状态
+  updateUIForTask(toTask);
+  
+  // 更新全局状态
+  setCurrentTask(toTaskId);
+}
+```
+
+## 💾 数据存储规范
+
+### 键名统一管理
+```javascript
+// ✅ 通过函数统一管理存储键名
+const StorageKeys = {
+  taskData: (taskId) => `task_data_${taskId}`,
+  userSettings: () => 'user_settings',
+  brandConfig: (brandId) => `brand_config_${brandId}`
+};
+
+// ✅ 读取时处理默认值
+async function getTaskData(taskId) {
+  const key = StorageKeys.taskData(taskId);
+  const result = await chrome.storage.local.get(key);
+  return result[key] || getDefaultTaskData();
+}
+```
+
+## 🧪 必须测试的场景
+
+### 并发测试
+- 多任务同时执行
+- 用户快速点击操作
+- 网络请求并发
+
+### 异常测试
+- 网络断开
+- 页面突然关闭
+- 权限被撤销
+- 存储空间不足
+
+### 边界测试
+- 空数据处理
+- 极大数据量
+- 特殊字符输入
+- 极端网络延迟
+
+## ⚠️ 代码质量要求
+
+### 函数设计
+- 每个函数只做一件事（单一职责）
+- 函数名清晰表达功能
+- 参数验证在函数开始
+- 返回值类型一致
+
+### 错误处理
+```javascript
+// ✅ 结构化错误处理
+async function performCriticalOperation() {
+  try {
+    const result = await criticalAsyncOperation();
+    logSuccess('操作成功', { result });
+    return result;
+  } catch (error) {
+    logError('操作失败', { error: error.message, stack: error.stack });
+    
+    // 用户友好的错误提示
+    showUserMessage('操作失败，请稍后重试', 'error');
+    
+    // 状态恢复
+    resetOperationState();
+    
+    throw error; // 重新抛出供调用者处理
+  }
+}
+```
+
+### 日志规范
+```javascript
+// ✅ 结构化日志
+function logOperation(level, message, data = {}) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    data,
+    context: getCurrentContext()
+  };
+  console[level](logEntry);
+}
+```
+
+## 🎯 性能优化要求
+
+### 避免不必要的操作
+- 缓存重复计算结果
+- 防抖用户快速操作
+- 延迟加载非关键资源
+- 及时清理定时器和监听器
+
+### 内存管理
+- 避免闭包引用大对象
+- 及时释放不需要的变量
+- 监控内存使用情况
+- 定期清理缓存数据
+
+## 📋 提交前必检项目
+
+1. **功能验证**：主要使用场景完整测试
+2. **错误处理**：所有可能的异常情况有处理
+3. **状态一致**：UI状态与后端状态同步
+4. **性能检查**：无明显性能问题
+5. **用户体验**：操作反馈清晰及时
+6. **代码质量**：符合团队编码规范
+7. **安全检查**：权限和安全验证完整
+
+遵循这些规则可以显著提升Chrome扩展开发的效率和质量，减少99%的常见bug，确保用户需求得到准确高效的实现。

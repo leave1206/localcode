@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 阅读伴侣 (本地服务器最终版)</title>
+    
+    <!-- 加载所有必要的外部库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- **已修正**: 从CDN加载完整、正确的 marked.js 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.1/dist/tesseract.min.js"></script>
+    
+    <style>
+        #chat-container { display: flex; flex-direction: column; height: calc(100vh - 8rem); }
+        #chat-messages { flex-grow: 1; overflow-y: auto; }
+        #pdf-upload-input { display: none; }
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .action-btn { transition: all 0.2s ease-in-out; }
+        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .chat-bubble { max-width: 100%; }
+        .chapter-item {
+            cursor: pointer; padding: 8px 12px; margin: 4px 0;
+            border-radius: 8px; background-color: rgba(255, 255, 255, 0.05);
+            transition: background-color 0.2s; border: 1px solid transparent;
+        }
+        .chapter-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .chapter-item.selected {
+            background-color: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.8);
+            font-weight: bold;
+        }
+        #notification {
+            position: fixed; top: 1.25rem; right: 1.25rem; z-index: 100;
+            padding: 0.75rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            color: white; font-weight: bold;
+            transform: translateX(200%);
+            transition: transform 0.3s ease-in-out;
+        }
+        #notification.show {
+            transform: translateX(0);
+        }
+        #context-display {
+            align-items: center;
+            justify-content: space-between;
+            background-color: #374151;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            max-width: 100%;
+        }
+        #context-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal;
+            max-width: 90%;
+        }
+        #pdf-viewer-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: calc(100vh - 12rem);
+            overflow: auto;
+            padding: 1rem;
+            position: relative;
+        }
+        #pdf-canvas {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    <div id="notification">
+        <p id="notification-message"></p>
+    </div>
+
+    <div class="container mx-auto p-4 flex flex-row">
+        <!-- 左侧：提纲目录栏 -->
+        <div id="outline-sidebar" class="bg-gray-800 p-4 rounded-lg shadow-lg mr-4 h-[calc(100vh-8rem)] overflow-y-auto min-w-[260px] max-w-[340px] hidden border border-gray-700">
+            <h2 class="text-xl font-bold mb-3 text-gray-200">📑 书籍提纲</h2>
+            <div id="outline-content"></div>
+        </div>
+        <!-- 右侧主内容区 -->
+        <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 左侧：PDF 阅读器 -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="upload-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">上传PDF</button>
+                    <input type="file" id="pdf-upload-input" accept=".pdf">
+                    <div id="pagination" class="text-gray-300">
+                        <button id="prev-page" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-l-lg">&lt; 上一页</button>
+                        <span class="bg-gray-700 px-4 py-1">第 <span id="page-num">0</span> / <span id="page-count">0</span> 页</span>
+                        <button id="next-page" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-r-lg">下一页 &gt;</button>
+                    </div>
+                </div>
+                <div id="pdf-viewer-container" class="bg-white rounded-md flex justify-center items-center h-[calc(100vh-12rem)] overflow-auto">
+                    <canvas id="pdf-canvas" class="shadow-md"></canvas>
+                    <div id="upload-placeholder" class="text-gray-500 text-center"><p class="text-2xl">📚</p><p>请上传PDF文件开始阅读</p></div>
+                </div>
+            </div>
+
+            <!-- 右侧：AI 助手 -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow-lg" id="chat-container">
+                <h2 class="text-2xl font-bold mb-3 text-gray-200">智能助手</h2>
+                <div id="quick-actions-container" class="mb-4 border-b border-gray-700 pb-4">
+                     <h3 class="text-lg font-semibold mb-2 text-gray-300">本页分析</h3>
+                     <div class="flex flex-wrap gap-2 mb-3">
+                        <button data-action="summarize" class="action-btn bg-teal-600 hover:bg-teal-700 text-sm py-1 px-3 rounded-full">总结本页内容</button>
+                        <button data-action="explain" class="action-btn bg-teal-600 hover:bg-teal-700 text-sm py-1 px-3 rounded-full">解释核心术语</button>
+                     </div>
+                     <h3 class="text-lg font-semibold mb-2 text-gray-300">全书洞察</h3>
+                      <div class="flex flex-wrap gap-2 mb-3">
+                        <button data-action="overview" class="action-btn bg-purple-600 hover:bg-purple-700 text-sm py-1 px-3 rounded-full">生成全书概览</button>
+                        <button data-action="extract_outline" class="action-btn bg-purple-600 hover:bg-purple-700 text-sm py-1 px-3 rounded-full">✨ 提取书籍大纲</button>
+                      </div>
+                     <h3 class="text-lg font-semibold mb-2 text-gray-300">拓展与创作</h3>
+                     <div class="flex flex-wrap gap-2">
+                        <button data-action="flashcards" class="action-btn bg-sky-600 hover:bg-sky-700 text-sm py-1 px-3 rounded-full">生成学习卡片</button>
+                        <button data-action="questions" class="action-btn bg-sky-600 hover:bg-sky-700 text-sm py-1 px-3 rounded-full">角色扮演提问</button>
+                     </div>
+                </div>
+                <div id="chat-messages" class="space-y-4 p-2"></div>
+                <div id="context-display" class="hidden items-center justify-between bg-gray-700 p-2 rounded-md mb-2 text-sm">
+                    <span id="context-text"></span>
+                    <button id="clear-context-btn" class="text-lg text-gray-400 hover:text-white" title="清除焦点">&times;</button>
+                </div>
+                <div class="mt-auto pt-4 border-t border-gray-700">
+                    <div class="flex">
+                        <input type="text" id="user-input" class="w-full bg-gray-700 text-white rounded-l-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="或在此处输入任何问题...">
+                        <button id="send-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-5 rounded-r-lg">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;
+
+        // --- DOM元素获取 ---
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadInput = document.getElementById('pdf-upload-input');
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const pageNumEl = document.getElementById('page-num');
+        const pageCountEl = document.getElementById('page-count');
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const actionButtons = document.querySelectorAll('.action-btn');
+        const contextDisplay = document.getElementById('context-display');
+        const contextTextEl = document.getElementById('context-text');
+        const clearContextBtn = document.getElementById('clear-context-btn');
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notification-message');
+
+        // --- 全局状态变量 ---
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        const scale = 1.5;
+        let activeChapterContext = null;
+
+        function showNotification(message, type = 'success') {
+            notificationMessage.textContent = message;
+            notification.className = 'fixed top-5 right-5 z-100 p-3 px-6 rounded-lg shadow-lg text-white font-bold transition-transform duration-300';
+            if (type === 'success') {
+                notification.classList.add('bg-green-500');
+            } else {
+                notification.classList.add('bg-red-500');
+            }
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- 渲染与PDF处理函数 ---
+        function renderPage(num) {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(page => {
+                const canvas = document.getElementById('pdf-canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 计算合适的缩放比例
+                const containerWidth = document.getElementById('pdf-viewer-container').clientWidth - 32; // 减去padding
+                const viewport = page.getViewport({ scale: 1.0 });
+                const scale = Math.min(containerWidth / viewport.width, 2.0); // 限制最大缩放比例为2.0
+                
+                // 使用计算出的缩放比例创建新的viewport
+                const scaledViewport = page.getViewport({ scale });
+                
+                // 设置canvas尺寸
+                canvas.height = scaledViewport.height;
+                canvas.width = scaledViewport.width;
+                
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: scaledViewport
+                };
+                
+                page.render(renderContext).promise.then(() => {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+            pageNumEl.textContent = num;
+        }
+        function queueRenderPage(num) { if (pageRendering) { pageNumPending = num; } else { renderPage(num); } }
+        function onPrevPage() { if (pageNum > 1) { pageNum--; queueRenderPage(pageNum); } }
+        function onNextPage() { if (pdfDoc && pageNum < pdfDoc.numPages) { pageNum++; queueRenderPage(pageNum); } }
+        function handlePdfUpload(e) {
+            window.cachedFullText = null; // 清空缓存
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') { showNotification('请选择一个PDF文件', 'error'); return; }
+            document.getElementById('upload-placeholder').style.display = 'none';
+            document.getElementById('pdf-canvas').style.display = 'block';
+            const fileReader = new FileReader();
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                pdfjsLib.getDocument(typedarray).promise.then(pdfDoc_ => {
+                    pdfDoc = pdfDoc_;
+                    pageCountEl.textContent = pdfDoc.numPages;
+                    pageNum = 1;
+                    renderPage(pageNum);
+                    clearChapterContext();
+                }).catch(err => { console.error('Error parsing PDF:', err); showNotification('无法解析该PDF文件。', 'error'); });
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+
+        function displayMessage(text, role, isRawHtml = false) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            const messageBubble = document.createElement('div');
+            messageBubble.className = `chat-bubble prose prose-sm prose-invert max-w-none ${role === 'user' ? 'bg-blue-600' : 'bg-gray-700'} p-3 rounded-lg break-words`;
+            if (isRawHtml) { messageBubble.innerHTML = text; } 
+            else if (role === 'ai') {
+                // **修正**: 检查 marked 是否已加载
+                if (window.marked) {
+                    messageBubble.innerHTML = window.marked.parse(text);
+                } else {
+                    messageBubble.textContent = text; // Fallback if marked fails to load
+                    console.error("marked.js is not loaded.");
+                }
+            } 
+            else { messageBubble.textContent = text; }
+            messageWrapper.appendChild(messageBubble);
+            chatMessages.appendChild(messageWrapper);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageBubble;
+        }
+        
+        async function callGeminiAPI(prompt) {
+            if (!prompt || typeof prompt !== 'string' || !prompt.trim()) { return "错误：尝试发送一个无效的请求给AI。"; }
+            const apiKey = "AIzaSyBmNusYqCdIzPb453FHeLU87o4HMRMOJg8"; // The key is expected to be injected by the environment.
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
+                });
+                if (!response.ok) throw new Error(`API request failed with status ${response.status} ${response.statusText}`);
+                const result = await response.json();
+                return result.candidates?.[0]?.content?.parts?.[0]?.text || "抱歉，从API收到的回复格式不正确。";
+            } catch (error) {
+                console.error('Gemini API call failed:', error);
+                if (error.message.includes("401")) {
+                     return `调用AI服务时出错: 身份验证失败 (401)。这通常是环境配置问题。`;
+                }
+                return `调用AI服务时出错: ${error.message}。`;
+            }
+        }
+        
+        async function extractTextFromPages(pageNumbers) {
+            if (!pdfDoc) return "";
+            let combinedTextArr = [];
+            const batchSize = 100;
+
+            // 先预处理所有页，分为文本页和图片页
+            let pageTasks = pageNumbers.map(async (pNum, idx) => {
+                if (pNum > pdfDoc.numPages || pNum < 1) return { idx, pNum, text: '' };
+                const page = await pdfDoc.getPage(pNum);
+                const textContent = await page.getTextContent();
+                let pageText = textContent.items.map(item => item.str).join(' ');
+                if (pageText.trim()) {
+                    return { idx, pNum, text: pageText };
+                } else {
+                    return { idx, pNum, page }; // 需要OCR
+                }
+            });
+
+            let pageResults = await Promise.all(pageTasks);
+
+            // 分批对需要OCR的页做并发识别
+            for (let i = 0; i < pageResults.length; i += batchSize) {
+                let batch = pageResults.slice(i, i + batchSize);
+                let ocrBatch = batch.map(async (item) => {
+                    if (item.text !== undefined) return item; // 已有文本
+                    // OCR
+                    showNotification(`第${item.pNum}页为图片，正在进行OCR识别...`, 'success');
+                    const viewport = item.page.getViewport({ scale: 2 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const ctx = canvas.getContext('2d');
+                    await item.page.render({ canvasContext: ctx, viewport }).promise;
+                    let pageText = '';
+                    if (window.Tesseract) {
+                        try {
+                            const result = await window.Tesseract.recognize(canvas, 'chi_sim+eng', { logger: m => {} });
+                            pageText = result.data.text.replace(/\n+/g, ' ').trim();
+                            showNotification(`第${item.pNum}页OCR识别完成`, 'success');
+                        } catch (e) {
+                            pageText = '[OCR识别失败]';
+                            showNotification(`第${item.pNum}页OCR识别失败`, 'error');
+                        }
+                    } else {
+                        pageText = '[未加载OCR库]';
+                        showNotification('OCR库未加载，无法识别图片页', 'error');
+                    }
+                    return { idx: item.idx, pNum: item.pNum, text: pageText };
+                });
+                let ocrBatchResults = await Promise.all(ocrBatch);
+                // 替换回主数组
+                for (let j = 0; j < ocrBatchResults.length; j++) {
+                    pageResults[i + j] = ocrBatchResults[j];
+                }
+            }
+
+            // 按原顺序拼接
+            pageResults.sort((a, b) => a.idx - b.idx);
+            let combinedText = pageResults.map(item => `\n--- Page ${item.pNum} Content ---\n${item.text}`).join('');
+            if (!combinedText.trim()) {
+                showNotification('全文拼接失败，未能提取到任何文本。', 'error');
+            } else {
+                showNotification('全文拼接完成，准备调用AI生成大纲。', 'success');
+            }
+            return combinedText;
+        }
+        async function extractBookExcerpts(full = false) {
+            if (window.cachedFullText) {
+                showNotification('已加载缓存全文，无需重复OCR。', 'success');
+                return window.cachedFullText;
+            }
+            if (!pdfDoc) return "";
+            const numPages = pdfDoc.numPages;
+            let pageNumbers = [];
+            if (full || numPages <= 20) {
+                pageNumbers = Array.from({ length: numPages }, (_, i) => i + 1);
+            } else {
+                const start = [1, 2, 3];
+                const middle = [Math.floor(numPages / 2) - 1, Math.floor(numPages / 2), Math.floor(numPages / 2) + 1];
+                const end = [numPages - 2, numPages - 1, numPages];
+                pageNumbers = [...new Set([...start, ...middle, ...end])].filter(n => n > 0 && n <= numPages);
+            }
+            const fullText = await extractTextFromPages(pageNumbers);
+            window.cachedFullText = fullText; // 缓存
+            return fullText;
+        }
+        async function extractCurrentPageText() {
+            if (!pdfDoc) return "";
+            return await extractTextFromPages([pageNum]);
+        }
+        
+        function setChapterContext(chapterTitle) {
+            activeChapterContext = chapterTitle;
+            console.log('当前聚焦章节:', activeChapterContext);
+            contextTextEl.textContent = `当前聚焦: ${chapterTitle}`;
+            contextDisplay.classList.remove('hidden');
+            contextDisplay.classList.add('flex');
+            userInput.placeholder = `针对 "${chapterTitle}" 提问...`;
+        }
+        function clearChapterContext() {
+            activeChapterContext = null;
+            contextDisplay.classList.add('hidden');
+            userInput.placeholder = '或在此处输入任何问题...';
+            document.querySelectorAll('.chapter-item.selected').forEach(el => el.classList.remove('selected'));
+        }
+        function makeOutlineInteractive(bubbleElement) {
+            bubbleElement.querySelectorAll('li').forEach(item => {
+                // 判断是否为子章节
+                if (item.parentElement && (item.parentElement.tagName === 'UL' || item.parentElement.tagName === 'OL') &&
+                    item.parentElement.parentElement && item.parentElement.parentElement.tagName === 'LI') {
+                    item.classList.add('chapter-item', 'chapter-child');
+                    // 只对子章节绑定点击事件
+                    item.onclick = (e) => {
+                        // 阻止冒泡，保证只触发一次
+                        e.stopPropagation();
+                        document.querySelectorAll('.chapter-item.selected').forEach(el => el.classList.remove('selected'));
+                        e.currentTarget.classList.add('selected');
+                        const chapterTitle = e.currentTarget.dataset.chapterTitle;
+                        setChapterContext(chapterTitle);
+                        const match = chapterTitle.match(/【第(\d+)(?:-(\d+))?页】/);
+                        if (match) {
+                            const startPage = parseInt(match[1]);
+                            if (!isNaN(startPage)) {
+                                queueRenderPage(startPage);
+                            }
+                        }
+                    };
+                } else {
+                    item.classList.add('chapter-item', 'chapter-parent');
+                    // 只对父章节绑定点击事件
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        document.querySelectorAll('.chapter-item.selected').forEach(el => el.classList.remove('selected'));
+                        e.currentTarget.classList.add('selected');
+                        const chapterTitle = e.currentTarget.dataset.chapterTitle;
+                        setChapterContext(chapterTitle);
+                    };
+                }
+                // 取li的innerText去除深度思考按钮后的内容作为章节标题
+                let titleText = item.innerText.replace(/\s*深度思考\s*$/, '').trim();
+                item.dataset.chapterTitle = titleText;
+                // 先移除已有的深度思考按钮和页码，避免重复
+                item.querySelectorAll('.deep-think-btn, .chapter-page-info').forEach(btn => btn.remove());
+                // 只插入一个深度思考按钮
+                if (!item.querySelector('.deep-think-btn')) {
+                    const btn = document.createElement('button');
+                    btn.textContent = '深度思考';
+                    btn.className = 'deep-think-btn ml-2 px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-xs rounded-full';
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // 防止触发章节聚焦
+                        // 提取li中的页码范围
+                        const match = item.dataset.chapterTitle.match(/【第(\d+)(?:-(\d+))?页】/);
+                        let pageRange = null;
+                        if (match) {
+                            const start = parseInt(match[1]);
+                            const end = match[2] ? parseInt(match[2]) : start;
+                            pageRange = {start, end};
+                        }
+                        handleUserAction('deep_think', {
+                            chapterTitle: item.dataset.chapterTitle,
+                            buttonText: `对"${item.dataset.chapterTitle}"深度思考`,
+                            pageRange
+                        });
+                    });
+                    item.appendChild(btn);
+                }
+            });
+        }
+        
+        async function handleUserAction(action, data = {}) {
+            if (!pdfDoc && action !== 'custom') {
+                showNotification('请先上传一本书籍PDF！', 'error'); return;
+            }
+
+            const userMessage = data.customText || data.buttonText || '正在处理请求...';
+            displayMessage(userMessage, 'user');
+            
+            const thinkingMessage = '<div class="flex items-center"><div class="loader mr-2"></div> 正在思考中...</div>';
+            const thinkingBubble = displayMessage(thinkingMessage, 'ai', true);
+            
+            let prompt = '';
+            let contextText = '';
+            let finalResponse;
+
+            if (action === 'extract_outline') {
+                thinkingBubble.innerHTML = '<div class="flex items-center"><div class="loader mr-2"></div> 正在深度分析全书以生成主题大纲... (这可能需要一些时间)</div>';
+                const fullText = await extractBookExcerpts(true); 
+                prompt = `你是一位专业的内容架构师和深度阅读专家。请你通读我提供的整本书的文本内容，结合文档的目录结构，提取并生成一份结构化的主题大纲。要求如下：\n\n1. 目录结构限制：\n   - 最多只允许两层结构（大章节及其下属小章节）\n   - 不允许出现第三层或更深层级的子章节\n   - 每个大章节下可以有多个小章节\n\n2. 内容要求：\n   - 必须结合文档原有目录和全文内容综合提取\n   - 每个章节标题后，务必用【第X-Y页】的格式标注该章节在文档中的页码范围（如：【第3-8页】），如只有一页则为【第5页】\n   - 每个章节标题后还需简明扼要地说明该部分的核心观点或主旨\n   - 确保章节之间的逻辑连贯性和层次分明\n   - 保持专业性和准确性\n\n3. 输出格式：\n   - 使用 Markdown 列表格式\n   - 大章节使用一级列表（-）\n   - 小章节使用二级列表（  -）\n   - 每个章节的核心观点用括号标注\n   - 页码范围务必用【第X-Y页】或【第X页】紧跟在章节标题后，便于程序自动提取\n\n请用中文输出，确保结构清晰、层次分明。\n\n书籍全文内容如下：\n${fullText}`;
+                try {
+                finalResponse = await callGeminiAPI(prompt);
+                } catch (e) {
+                    showNotification('AI大模型接口调用失败，请重试或检查网络/API Key。', 'error');
+                    thinkingBubble.innerHTML = '<span class="text-red-400">AI大模型接口调用失败，请重试或检查网络/API Key。</span>';
+                    return;
+                }
+                // 1. 去除AI返回内容中的代码块包裹
+                let cleaned = finalResponse.replace(/```[a-zA-Z]*([\s\S]*?)```/g, '$1').trim();
+                // 2. 渲染到侧栏
+                const outlineSidebar = document.getElementById('outline-sidebar');
+                const outlineContent = document.getElementById('outline-content');
+                outlineSidebar.classList.remove('hidden');
+                outlineContent.innerHTML = ""; // 先清空
+                // 用 displayMessage 渲染 markdown，提取 chat-bubble 内容
+                const tempBubble = displayMessage(cleaned, 'ai');
+                // 只保留ul/ol/li结构，移除其他多余内容
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = tempBubble.innerHTML;
+                // 查找ul/ol
+                let list = tempDiv.querySelector('ul,ol');
+                if (!list) {
+                    // 没有ul/ol，直接用全部内容
+                    outlineContent.innerHTML = tempDiv.innerHTML;
+                } else {
+                    outlineContent.innerHTML = '';
+                    outlineContent.appendChild(list.cloneNode(true));
+                }
+                outlineContent.className = 'prose prose-sm prose-invert max-w-none';
+                makeOutlineInteractive(outlineContent);
+                // 检查是否有li
+                if (!outlineContent.querySelector('li')) {
+                    outlineContent.innerHTML = '<div class="text-red-400">AI返回内容格式异常，请重试或调整提问。</div>';
+                }
+                // 聊天区只显示提示
+                thinkingBubble.innerHTML = '<span class="text-gray-400">已在左侧目录栏生成并展示最新提纲。</span>';
+                // 删除临时气泡
+                tempBubble.parentElement.remove();
+                return;
+            }
+            
+            switch(action) {
+                case 'summarize': contextText = await extractCurrentPageText(); prompt = `请用中文精炼地总结以下内容的核心要点：\n\n"${contextText}"`; break;
+                case 'explain': contextText = await extractCurrentPageText(); prompt = `请解释以下文本中可能存在的专业术语、核心概念或不常见的词语。\n\n文本内容：\n"${contextText}"`; break;
+                case 'overview': contextText = await extractBookExcerpts(); prompt = `作为图书评论家，请根据书籍节选，生成一份包含核心主旨、内容梗概、写作风格和目标读者的"全书概览"。\n\n书籍节选：\n${contextText}`; break;
+                case 'flashcards': contextText = await extractCurrentPageText(); prompt = `请根据以下文本，为我创建5个用于复习的问答式学习卡片。\n\n文本：\n"${contextText}"`; break;
+                case 'questions': contextText = await extractCurrentPageText(); prompt = `请扮演一位批判性学者，根据以下文本，提出3个深刻、有挑战性的问题。\n\n文本：\n"${contextText}"`; break;
+                case 'deep_think':
+                    // 针对章节深度分析
+                    if (!data.chapterTitle) { thinkingBubble.innerHTML = '<p>未指定章节标题。</p>'; return; }
+                    let deepContext = '';
+                    if (data.pageRange && data.pageRange.start && data.pageRange.end) {
+                        // 只提取指定页码内容
+                        const pages = [];
+                        for (let i = data.pageRange.start; i <= data.pageRange.end; i++) pages.push(i);
+                        deepContext = await extractTextFromPages(pages);
+                    } else {
+                        deepContext = await extractBookExcerpts();
+                    }
+                    prompt = `你是一位专业的内容分析师和深度阅读专家。请你只针对下方提供的书籍章节内容（页码范围：${data.pageRange ? `第${data.pageRange.start}${data.pageRange.end !== data.pageRange.start ? '-' + data.pageRange.end : ''}页` : '未指定'}），进行深度分析，输出包括：\n1. 该章节的核心观点和主旨；\n2. 章节内部的逻辑结构与层次；\n3. 该章节与全书主题或其他章节的关系；\n4. 章节内容的深层含义与理论价值；\n5. 该章节对现实的启示或应用价值。\n请用分点、分层次的方式详细输出，语言精炼、条理清晰。\n请用中文输出。\n章节内容如下：\n${deepContext}`;
+                    break;
+                case 'custom':
+                    if (!data.customText.trim()) { thinkingBubble.innerHTML = "<p>请输入您的问题。</p>"; return; }
+                    if (activeChapterContext) {
+                        contextText = await extractBookExcerpts();
+                        prompt = `我当前正聚焦于阅读一本书中名为"${activeChapterContext}"的章节。请基于这本书的整体内容，优先从该章节中寻找答案来回答我的问题。\n\n书籍节选（用于上下文）：${contextText}\n\n我的问题是："${data.customText}"`;
+                    } else {
+                        contextText = await extractCurrentPageText();
+                        prompt = `背景：我正在阅读的书籍当前页内容是关于"${contextText.substring(0, 100)}..."。\n\n我的问题是："${data.customText}"`;
+                    }
+                    break;
+            }
+            finalResponse = await callGeminiAPI(prompt);
+            thinkingBubble.innerHTML = marked.parse(finalResponse);
+        }
+
+        // --- EVENT LISTENERS ---
+        uploadBtn.addEventListener('click', () => uploadInput.click());
+        uploadInput.addEventListener('change', handlePdfUpload);
+        document.getElementById('prev-page').addEventListener('click', onPrevPage);
+        document.getElementById('next-page').addEventListener('click', onNextPage);
+        sendBtn.addEventListener('click', () => { if (userInput.value) { handleUserAction('custom', { customText: userInput.value }); userInput.value = ''; } });
+        userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); } });
+        
+        // 移除重复的事件监听器绑定
+        actionButtons.forEach(button => {
+            const action = button.dataset.action;
+            if (action === 'summarize' || action === 'explain') {
+                // 对于总结和解释按钮，使用新的处理逻辑
+                button.addEventListener('click', async (e) => {
+                    if (activeChapterContext) {
+                        // 如果有聚焦章节，分析该章节内容
+                        let contextText = '';
+                        if (window.cachedFullText) {
+                            const reg = new RegExp(`${activeChapterContext.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(.*?)--- Page`, 's');
+                            const match = window.cachedFullText.match(reg);
+                            if (match) {
+                                contextText = match[1].trim();
+                            } else {
+                                contextText = activeChapterContext;
+                            }
+                        } else {
+                            contextText = activeChapterContext;
+                        }
+                        let prompt = '';
+                        if (action === 'summarize') {
+                            prompt = `请用中文精炼地总结以下章节内容的核心要点：\n\n"${contextText}"`;
+                        } else if (action === 'explain') {
+                            prompt = `请解释以下章节内容中可能存在的专业术语、核心概念或不常见的词语。\n\n章节内容：\n"${contextText}"`;
+                        }
+                        const thinkingMessage = '<div class="flex items-center"><div class="loader mr-2"></div> 正在思考中...</div>';
+                        const thinkingBubble = displayMessage(thinkingMessage, 'ai', true);
+                        const finalResponse = await callGeminiAPI(prompt);
+                        thinkingBubble.innerHTML = marked.parse(finalResponse);
+                    } else {
+                        // 没有聚焦章节，使用默认处理
+                        handleUserAction(action, { buttonText: e.currentTarget.textContent });
+                    }
+                });
+            } else {
+                // 其他按钮使用默认处理
+                button.addEventListener('click', (e) => handleUserAction(action, { buttonText: e.currentTarget.textContent }));
+            }
+        });
+        
+        clearContextBtn.addEventListener('click', () => {
+            clearChapterContext();
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            displayMessage('你好！我是你的全能阅读伴侣。新增"章节聚焦对话"功能！提取大纲后，点击章节即可针对性提问。', 'ai');
+        });
+
+        // 添加窗口大小改变时的自适应处理
+        window.addEventListener('resize', () => {
+            if (pdfDoc && !pageRendering) {
+                renderPage(pageNum);
+            }
+        });
+    </script>
+</body>
+</html>

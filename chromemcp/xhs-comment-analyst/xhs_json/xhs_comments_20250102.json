@@ -1,0 +1,18 @@
+{
+  "1": {
+    "noteId": "n1",
+    "noteUrl": "https://www.xiaohongshu.com/explore/ghi",
+    "comments": [
+      {
+        "user": "U1",
+        "time": "昨天",
+        "content": "不错"
+      },
+      {
+        "user": "U2",
+        "time": "1小时前",
+        "content": "太贵"
+      }
+    ]
+  }
+}

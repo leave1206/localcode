@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>营销策略工作流自动化（纯API调用版）</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入SheetJS (xlsx.js) 用于生成Excel文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- 引入Marked.js 用于将Markdown转换为HTML预览 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入 PDF.js for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: #f8fafc;
+        }
+        .status-item {
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-item.pending {
+            opacity: 0.5;
+        }
+        .status-item.processing {
+            opacity: 1;
+            transform: scale(1.05);
+            border-left-color: #3b82f6;
+        }
+        .status-item.completed {
+            opacity: 1;
+            border-left-color: #22c55e;
+        }
+        .status-item.error {
+             opacity: 1;
+             border-left-color: #ef4444;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 80vw;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .file-upload-feedback {
+            font-size: 0.8rem;
+            color: #16a34a;
+            margin-top: 4px;
+            height: 1rem;
+        }
+        .spinner {
+            display: inline-block;
+            border: 2px solid rgba(0,0,0,.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .download-icon {
+            cursor: pointer;
+            color: #9ca3af;
+            transition: color 0.2s;
+        }
+        .download-icon:hover {
+            color: #3b82f6;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-900">营销策略工作流自动化平台</h1>
+            <p class="text-lg text-gray-600 mt-2">基于 Gemini API 的真实营销洞察与内容生成</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- 左侧：输入与控制 -->
+            <div class="md:col-span-1 bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 border-b pb-3">第一步：配置与上传</h2>
+                <div class="space-y-4">
+                     <div>
+                        <label for="product-pdf" class="block text-sm font-medium text-gray-700 mb-1">产品原始资料 (PDF)</label>
+                        <input type="file" id="product-pdf" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                        <div id="pdf-feedback" class="file-upload-feedback"></div>
+                    </div>
+                    <div>
+                        <label for="supplemental-text" class="block text-sm font-medium text-gray-700 mb-1">补充更多文本信息 (可选)</label>
+                        <textarea id="supplemental-text" rows="3" placeholder="请输入补充信息..." class="block w-full text-sm text-gray-500 rounded-lg border border-gray-300 p-2 focus:border-blue-400 focus:outline-none"></textarea>
+                        <div id="supplemental-text-feedback" class="file-upload-feedback"></div>
+                    </div>
+                    <div>
+                        <label for="gemini-model-select" class="block text-sm font-medium text-gray-700 mb-1">选择Gemini模型</label>
+                        <select id="gemini-model-select" class="block w-full text-sm text-gray-700 rounded-lg border border-gray-300 p-2 focus:border-blue-400 focus:outline-none">
+                            <option value="gemini-2.5-flash-preview-05-20" selected>gemini-2.5-flash-preview-05-20（默认推荐）</option>
+                            <option value="gemini-2.5-pro-preview-06-05">gemini-2.5-pro-preview-06-05</option>
+                            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                        </select>
+                        <div id="gemini-model-feedback" class="file-upload-feedback"></div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t">
+                    <h3 class="text-lg font-semibold mb-3">上传自定义模板 (可选)</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="template-all-audience" class="block text-sm font-medium text-gray-700 mb-1">全量人群 (JSON)</label>
+                            <input type="file" id="template-all-audience" accept=".json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
+                            <div id="template-all-audience-feedback" class="file-upload-feedback"></div>
+                        </div>
+                         <div>
+                            <label for="template-high-score-audience" class="block text-sm font-medium text-gray-700 mb-1">[人群]模板 (JSON)</label>
+                            <input type="file" id="template-high-score-audience" accept=".json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
+                            <div id="template-high-score-audience-feedback" class="file-upload-feedback"></div>
+                        </div>
+                         <div>
+                            <label for="template-scene-insight" class="block text-sm font-medium text-gray-700 mb-1">场景洞察模板 (JSON)</label>
+                            <input type="file" id="template-scene-insight" accept=".json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
+                            <div id="template-scene-insight-feedback" class="file-upload-feedback"></div>
+                        </div>
+                        <div>
+                            <label for="custom-core-crowds" class="block text-sm font-medium text-gray-700 mb-1">自定义核心人群明细 (Excel, 可选)</label>
+                            <input type="file" id="custom-core-crowds" accept=".xlsx" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 cursor-pointer">
+                            <div id="custom-core-crowds-feedback" class="file-upload-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <button id="start-workflow-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 disabled:bg-gray-400 flex items-center justify-center">
+                        <span id="btn-text">🚀 启动工作流</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧：状态与输出 -->
+            <div class="md:col-span-2 space-y-6">
+                 <!-- 状态监控 -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">第二步：工作流监控</h2>
+                     <p class="text-xs text-gray-500 mb-3">请打开浏览器开发者控制台 (F12) 查看真实的API请求构造过程。</p>
+                    <div id="status-container" class="space-y-3">
+                        <!-- 状态项将由JS动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 结果下载 -->
+                <div id="results-container" class="bg-white p-6 rounded-2xl shadow-lg hidden">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3 text-green-600">🎉 工作流完成！下载您的策略文件</h2>
+                    <div id="download-buttons" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- 下载按钮将由JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 预览 Modal -->
+    <div id="preview-modal" class="modal-overlay hidden">
+        <div class="modal-content w-full md:w-2/3 lg:w-1/2">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 id="modal-title" class="text-xl font-bold">文件预览</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div id="modal-body" class="prose max-w-none"></div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- GLOBAL STATE & CONFIG ---
+        let GEMINI_MODEL = "gemini-2.5-flash-preview-05-20";
+
+        let workflowState = {};
+        let uploadedPdfFile = null;
+        let supplementalText = '';
+        let isPaused = false;
+
+        // --- FILE CACHE: Storing user-provided templates and data ---
+        const fileCache = {
+            '全量人群.json': [], // 初始化为空数组，将在初始化时加载完整数据
+            '[人群]模板.json': {"matchedCrowds":[{"groupName":"","typeOption":"","industryOption":"","groupDesc":"","coverNum":0,"人群类型":"","score":0,"reasoning":""}]},
+            '[场景洞察]模板.json': {"整合人群场景洞察":[{"原始优质人群":{"groupName":"","typeOption":"","industryOption":"","groupDesc":"","coverNum":0,"人群类型":"","score":0,"reasoning":""},"拓展典型人群":[{"典型人群名称":"","典型人群画像描述":"","需求痛点":"","匹配产品卖点":"","精细化使用场景":[{"场景名称":"","场景描述":"","小红书核心话术":""}]}]}]}
+        };
+
+        // 加载完整的人群数据
+        async function loadFullAudienceData() {
+            try {
+                const response = await fetch('/api/audience');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                fileCache['全量人群.json'] = data;
+                templateAllAudienceFeedback.textContent = `已加载: 全量人群.json (${data.length}个人群)`;
+                templateAllAudienceFeedback.style.color = '#16a34a';
+                console.log(`成功加载全量人群数据，共${data.length}条记录`);
+            } catch (error) {
+                console.error('加载全量人群数据失败:', error);
+                // 使用默认的示例数据
+                fileCache['全量人群.json'] = [{"groupName":"颜选寻香人","typeOption":"行业特色","industryOption":"日化家清","groupDesc":"在【香水香薰行业】下有【常规纸巾类目】阅读/搜索行为以及对关键词【香味纸巾、联名纸巾、纸巾设计】等有阅读/搜索行为的人","coverNum":26241156,"人群类型":"行业人群"},{"groupName":"【宏盟媒体集团】时尚配饰-中高消","typeOption":"行业特色","industryOption":"奢侈品","groupDesc":"近30天时尚-配饰搜索/阅读兴趣类目，阅读≥1∪搜索/搜后互动/搜后阅读≥1，中/高消费水平","coverNum":87012066,"人群类型":"行业人群"}];
+                templateAllAudienceFeedback.textContent = '使用默认示例数据 (2个人群)';
+                templateAllAudienceFeedback.style.color = '#ef4444';
+            }
+        }
+
+        // --- WORKFLOW NODES DEFINITION ---
+        const workflowNodes = [
+            { id: 1, name: '产品信息深度提取', func: runNode1, useAI: true },
+            { id: 3, name: '生成小红书内容与KOL策略', func: runNode3, useAI: true },
+            { id: 4, name: '人群库智能匹配与排序', func: runNode4, useAI: false },
+            { id: 5, name: 'AI驱动的新人群探索与整合', func: runNode5, useAI: true },
+            { id: 6, name: '筛选并输出Top30核心人群', func: runNode6, useAI: false },
+            { id: 7, name: '人群场景洞察与小红书话术生成', func: runNode7, useAI: true },
+            { id: 8, name: '生成可交付的Excel营销场景表', func: runNode8, useAI: false },
+        ];
+        
+        // --- UI ELEMENTS ---
+        const startBtn = document.getElementById('start-workflow-btn');
+        const btnText = document.getElementById('btn-text');
+        const statusContainer = document.getElementById('status-container');
+        const resultsContainer = document.getElementById('results-container');
+        const downloadButtonsContainer = document.getElementById('download-buttons');
+        const pdfFileInput = document.getElementById('product-pdf');
+        const supplementalTextInput = document.getElementById('supplemental-text');
+        const pdfFeedback = document.getElementById('pdf-feedback');
+        const supplementalTextFeedback = document.getElementById('supplemental-text-feedback');
+        const templateAllAudienceInput = document.getElementById('template-all-audience');
+        const templateHighScoreAudienceInput = document.getElementById('template-high-score-audience');
+        const templateSceneInsightInput = document.getElementById('template-scene-insight');
+        const templateAllAudienceFeedback = document.getElementById('template-all-audience-feedback');
+        const templateHighScoreAudienceFeedback = document.getElementById('template-high-score-audience-feedback');
+        const templateSceneInsightFeedback = document.getElementById('template-scene-insight-feedback');
+        const previewModal = document.getElementById('preview-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        
+        // 添加暂停/恢复按钮
+        const pauseBtn = document.createElement('button');
+        pauseBtn.id = 'pause-workflow-btn';
+        pauseBtn.className = 'w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-500 transition duration-300 mt-2';
+        pauseBtn.textContent = '暂停';
+        startBtn.parentNode.appendChild(pauseBtn);
+
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? '恢复' : '暂停';
+        });
+
+        // --- EVENT LISTENERS ---
+        pdfFileInput.addEventListener('change', (e) => handleFileUpload(e, 'pdf'));
+        supplementalTextInput.addEventListener('input', (e) => {
+            supplementalText = e.target.value;
+            if (supplementalText.trim().length > 0) {
+                supplementalTextFeedback.textContent = `已输入补充信息 (${supplementalText.length} 字)`;
+                supplementalTextFeedback.style.color = '#16a34a';
+            } else {
+                supplementalTextFeedback.textContent = '';
+            }
+        });
+        templateAllAudienceInput.addEventListener('change', (e) => handleTemplateUpload(e, '全量人群.json', templateAllAudienceFeedback));
+        templateHighScoreAudienceInput.addEventListener('change', (e) => handleTemplateUpload(e, '[人群]模板.json', templateHighScoreAudienceFeedback));
+        templateSceneInsightInput.addEventListener('change', (e) => handleTemplateUpload(e, '[场景洞察]模板.json', templateSceneInsightFeedback));
+        startBtn.addEventListener('click', startWorkflow);
+        closeModalBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
+        previewModal.addEventListener('click', (e) => {
+            if (e.target === previewModal) previewModal.classList.add('hidden');
+        });
+
+        const geminiModelSelect = document.getElementById('gemini-model-select');
+        const geminiModelFeedback = document.getElementById('gemini-model-feedback');
+
+        geminiModelSelect.addEventListener('change', (e) => {
+            GEMINI_MODEL = e.target.value;
+            geminiModelFeedback.textContent = `已选择模型：${GEMINI_MODEL}`;
+            geminiModelFeedback.style.color = '#16a34a';
+        });
+
+        // --- CORE FUNCTIONS ---
+
+        function handleFileUpload(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const feedbackEl = type === 'pdf' ? pdfFeedback : supplementalTextFeedback;
+            feedbackEl.textContent = `已选择: ${file.name}`;
+            feedbackEl.style.color = '#16a34a';
+
+            if (type === 'pdf') {
+                uploadedPdfFile = file;
+            }
+        }
+
+        function handleTemplateUpload(event, cacheKey, feedbackEl) {
+             const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsedJson = JSON.parse(e.target.result);
+                    fileCache[cacheKey] = parsedJson;
+                    feedbackEl.textContent = `已覆盖: ${file.name}`;
+                    feedbackEl.style.color = '#16a34a';
+                    console.log(`模板 ${cacheKey} 已被文件 ${file.name} 更新。`);
+                } catch (error) {
+                    feedbackEl.textContent = error.message || 'JSON文件格式错误!';
+                    feedbackEl.style.color = '#ef4444';
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function initStatusUI() {
+            statusContainer.innerHTML = '';
+            workflowNodes.forEach(node => {
+                const statusElement = document.createElement('div');
+                statusElement.id = `status-node-${node.id}`;
+                statusElement.className = 'status-item pending p-3 border-l-4 border-gray-300 bg-gray-50 rounded-lg';
+                statusElement.innerHTML = `<div><span class="font-semibold">${node.name}</span>: <span class="status-text">待定</span></div><div class="downloads"></div>`;
+                statusContainer.appendChild(statusElement);
+            });
+        }
+        
+        function updateStatus(nodeId, statusText, type, errorMsg = null, rawError = null, retryHandler = null) {
+            const nodeElement = document.getElementById(`status-node-${nodeId}`);
+            if (nodeElement) {
+                const statusTextEl = nodeElement.querySelector('.status-text');
+                if(type === 'processing' && workflowNodes.find(n => n.id === nodeId).useAI) {
+                     statusTextEl.innerHTML = `<span class="spinner"></span> 正在调用Gemini API...`;
+                } else {
+                     statusTextEl.textContent = statusText;
+                }
+                nodeElement.classList.remove('pending', 'processing', 'completed', 'error');
+                nodeElement.classList.add(type);
+                if (type === 'completed') {
+                    addIntermediateDownloadButton(nodeId, nodeElement);
+                }
+                // 错误信息展示
+                let errorDiv = nodeElement.querySelector('.error-message');
+                if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message text-red-500 text-xs mt-1';
+                    nodeElement.appendChild(errorDiv);
+                }
+                errorDiv.textContent = errorMsg && type === 'error' ? errorMsg : '';
+                // 原始错误内容展示
+                let rawDiv = nodeElement.querySelector('.raw-error-message');
+                if (!rawDiv) {
+                    rawDiv = document.createElement('div');
+                    rawDiv.className = 'raw-error-message text-gray-400 text-xs mt-1';
+                    nodeElement.appendChild(rawDiv);
+                }
+                rawDiv.textContent = rawError && type === 'error' ? `原始响应: ${rawError}` : '';
+                // 重试按钮
+                let retryBtn = nodeElement.querySelector('.retry-btn');
+                if (type === 'error' && retryHandler && workflowNodes.find(n => n.id === nodeId).useAI) {
+                    if (!retryBtn) {
+                        retryBtn = document.createElement('button');
+                        retryBtn.className = 'retry-btn bg-blue-100 text-blue-700 px-2 py-1 rounded ml-2 text-xs';
+                        retryBtn.textContent = '重试';
+                        retryBtn.onclick = retryHandler;
+                        errorDiv.appendChild(retryBtn);
+                    }
+                } else if (retryBtn) {
+                    retryBtn.remove();
+                }
+            }
+        }
+        
+        async function startWorkflow() {
+            startBtn.disabled = true;
+            btnText.textContent = '工作流运行中...';
+            resultsContainer.classList.add('hidden');
+            downloadButtonsContainer.innerHTML = '';
+            isPaused = false;
+            pauseBtn.textContent = '暂停';
+            
+            initStatusUI();
+            initializeDefaultFileNames(); 
+
+            // 判断依赖：只有在产品卖点和内容创作策略都已生成时，才允许仅执行第七步
+            const canRunOnlyNode7 = workflowState.产品卖点 && workflowState.内容创作策略及审稿规则;
+            if (fileCache['自定义核心人群.xlsx'] && fileCache['自定义核心人群.xlsx'].length > 0) {
+                if (!canRunOnlyNode7) {
+                    alert('请先完整执行一次工作流，生成产品卖点和内容创作策略后，才能仅用自定义核心人群明细执行第七步！');
+                    startBtn.disabled = false;
+                    btnText.textContent = '🚀 启动工作流';
+                    return;
+                }
+                // 仅执行第七步，复用前面已生成的产品卖点和内容创作策略
+                const prevState = { ...workflowState };
+                workflowState = {
+                    ...prevState,
+                    人群高分: { raw: fileCache['自定义核心人群.xlsx'] }
+                };
+                updateStatus(7, '处理中...', 'processing');
+                try {
+                    workflowState = await runNode7(workflowState);
+                    updateStatus(7, '完成', 'completed');
+                    displayResults(workflowState.finalDownloads);
+                } catch (error) {
+                    updateStatus(7, `错误: ${error.message}`, 'error', error.message);
+                }
+                startBtn.disabled = false;
+                btnText.textContent = '🚀 重新运行工作流';
+                return;
+            }
+            // 否则全流程
+            workflowState = {};
+            for (const node of workflowNodes) {
+                // 检查暂停
+                while (isPaused) {
+                    await new Promise(res => setTimeout(res, 200));
+                }
+                updateStatus(node.id, '处理中...', 'processing');
+                try {
+                    await new Promise(res => setTimeout(res, 200)); 
+                    workflowState = await node.func(workflowState);
+                    updateStatus(node.id, '完成', 'completed');
+                } catch (error) {
+                    console.error(`节点 ${node.name} 失败:`, error);
+                    updateStatus(node.id, `错误: ${error.message}`, 'error', error.message);
+                    startBtn.disabled = false;
+                    btnText.textContent = '🚀 启动工作流';
+                    // 不再继续后续节点
+                    return;
+                }
+            }
+            displayResults(workflowState.finalDownloads);
+            startBtn.disabled = false;
+            btnText.textContent = '🚀 重新运行工作流';
+        }
+
+        function displayResults(downloads) {
+            resultsContainer.classList.remove('hidden');
+            downloads.forEach(file => {
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'flex flex-col space-y-2';
+                const downloadButton = document.createElement('button');
+                downloadButton.textContent = `下载 ${file.name}`;
+                downloadButton.className = 'w-full bg-green-500 text-white font-semibold py-2 px-3 rounded-lg hover:bg-green-600 transition duration-300 text-sm';
+                downloadButton.onclick = () => downloadFile(file.content, file.name, file.type);
+                const previewButton = document.createElement('button');
+                previewButton.textContent = '预览';
+                previewButton.className = 'w-full bg-gray-200 text-gray-700 font-semibold py-1 px-3 rounded-lg hover:bg-gray-300 transition duration-300 text-xs';
+                previewButton.onclick = () => showPreview(file);
+                buttonContainer.appendChild(downloadButton);
+                buttonContainer.appendChild(previewButton);
+                downloadButtonsContainer.appendChild(buttonContainer);
+            });
+        }
+        
+        function showPreview(file) {
+            modalTitle.textContent = `预览: ${file.name}`;
+            try {
+                if (file.name.endsWith('.md')) {
+                    modalBody.innerHTML = marked.parse(jsonToMarkdown(file.content));
+                } else if (file.name.endsWith('.xlsx')) {
+                    const worksheet = XLSX.utils.json_to_sheet(file.content.data);
+                    const html = XLSX.utils.sheet_to_html(worksheet);
+                    modalBody.innerHTML = `<div class="overflow-x-auto">${html}</div>`;
+                } else {
+                     modalBody.innerHTML = `<pre class="whitespace-pre-wrap"><code>${JSON.stringify(file.content, null, 2)}</code></pre>`;
+                }
+            } catch (error) {
+                modalBody.innerHTML = `<p class="text-red-500">无法生成预览。</p><pre>${error}</pre>`;
+            }
+            previewModal.classList.remove('hidden');
+        }
+
+        function jsonToMarkdown(json, level = 1, noEmptyLine = false) {
+            let md = '';
+            const lineBreak = '\n';
+            const emptyLine = noEmptyLine ? '' : '\n';
+            if (level === 1) {
+                md += `# ${json.title || '数据报告'}${lineBreak}`;
+                if (!json.data) return md;
+                return md + jsonToMarkdown(json.data, level + 1, noEmptyLine);
+            }
+            if (Array.isArray(json)) {
+                json.forEach((item, idx) => {
+                    md += `##${'#'.repeat(level-1)} ${idx}${lineBreak}`;
+                    md += jsonToMarkdown(item, level + 1, noEmptyLine);
+                    md += `---${lineBreak}`;
+                });
+            } else if (typeof json === 'object' && json !== null) {
+                Object.entries(json).forEach(([key, value]) => {
+                    md += `**${key}**:`;
+                    if (typeof value === 'object' && value !== null) {
+                        md += lineBreak + jsonToMarkdown(value, level + 1, noEmptyLine);
+                    } else {
+                        md += ` ${value}${lineBreak}`;
+                    }
+                });
+            } else {
+                md += `${json}${lineBreak}`;
+            }
+            return md;
+        }
+
+        function downloadFile(content, fileName, type) {
+            let blob;
+            try {
+                if (type === 'excel') {
+                     const ws = XLSX.utils.json_to_sheet(content.data);
+                     const wb = XLSX.utils.book_new();
+                     XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+                     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                     blob = new Blob([wbout], {type: "application/octet-stream"});
+                } else if (type === 'markdown') {
+                    // 节点3的两个md文件有换行但无空行
+                    const noEmptyLine = fileName === 'KOL媒介策略.md' || fileName === '内容创作策略以及审稿规则.md';
+                    blob = new Blob([jsonToMarkdown(content, 1, noEmptyLine)], { type: 'text/markdown;charset=utf-8' });
+                } else {
+                    blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json;charset=utf-8' });
+                }
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error("下载文件时出错:", error);
+                alert("创建下载文件失败！");
+            }
+        }
+
+        // 获取产品名称的函数
+        function getProductName() {
+            if (uploadedPdfFile) {
+                // 从PDF文件名中提取产品名称
+                const fileName = uploadedPdfFile.name;
+                // 移除文件扩展名
+                const nameWithoutExt = fileName.replace(/\.(pdf|PDF)$/, '');
+                // 移除常见的文件前缀和后缀，保留核心产品名称
+                const cleanName = nameWithoutExt
+                    .replace(/^[0-9\s\-_]+/, '') // 移除开头的数字、空格、连字符、下划线
+                    .replace(/[0-9\s\-_]+$/, '') // 移除结尾的数字、空格、连字符、下划线
+                    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '') // 只保留中文、英文、数字
+                    .trim();
+                
+                // 如果清理后的名称不为空，使用它
+                if (cleanName && cleanName.length > 0) {
+                    // 限制长度，避免文件名过长
+                    return cleanName.length > 15 ? cleanName.substring(0, 15) : cleanName;
+                }
+                
+                // 如果清理后为空，使用原始文件名（去除扩展名）
+                return nameWithoutExt.length > 15 ? nameWithoutExt.substring(0, 15) : nameWithoutExt;
+            }
+            
+            // 如果没有PDF文件，使用默认名称
+            return '产品';
+        }
+
+        const nodeOutputMapping = {
+            1: [{ key: '产品卖点', fileName: '产品卖点.json', type: 'json' }],
+            3: [ 
+                { key: 'KOL媒介策略', fileName: 'KOL媒介策略.md', type: 'markdown' },
+                { key: '内容创作策略及审稿规则', fileName: '内容创作策略以及审稿规则.md', type: 'markdown' }
+            ],
+            4: [
+                { key: 'allResultsExcel', fileName: '全部打分人群明细.xlsx', type: 'excel' }
+            ],
+            5: [
+                { key: 'finalMergedExcel', fileName: '最终合并人群明细.xlsx', type: 'excel' }
+            ],
+            6: [
+                { key: 'top30Excel', fileName: 'Top30核心人群明细.xlsx', type: 'excel' }
+            ],
+            7: [{ key: '场景洞察', fileName: '[场景洞察].xlsx', type: 'excel' }]
+        };
+
+        function addIntermediateDownloadButton(nodeId, parentElement) {
+            const downloadsContainer = parentElement.querySelector('.downloads');
+            if (!downloadsContainer) return;
+
+            downloadsContainer.innerHTML = ''; // Clear previous buttons if any
+
+            const mappings = nodeOutputMapping[nodeId];
+            if (!mappings) return;
+
+            // 获取产品名称作为前缀
+            const productName = getProductName();
+            const prefix = `[${productName}]`;
+
+            mappings.forEach(mapping => {
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-icon p-1 rounded-full hover:bg-gray-200';
+                downloadBtn.title = `下载 ${prefix}${mapping.fileName}`;
+                downloadBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+                downloadBtn.onclick = () => {
+                    const content = workflowState[mapping.key];
+                    if(content) {
+                        downloadFile(content, `${prefix}${mapping.fileName}`, mapping.type);
+                    } else {
+                        alert(`无法下载：节点 ${nodeId} 的输出数据不存在。`);
+                    }
+                };
+                downloadsContainer.appendChild(downloadBtn);
+            });
+        }
+
+
+        // --- REAL API CALL FUNCTION ---
+        async function callGeminiAPI(prompt, responseSchema = null, schemaType = null, retryCount = 0) {
+            // 通过后端API代理调用
+            const model = GEMINI_MODEL;
+            
+            // 根据不同的调用场景定义具体的JSON schema
+            let schema = null;
+            if (responseSchema) {
+                if (schemaType === 'crowd') {
+                    // 使用[人群]模板.json生成schema
+                    const crowdTemplate = fileCache['[人群]模板.json'];
+                    if (crowdTemplate) {
+                        schema = generateJsonSchemaFromExample(crowdTemplate);
+                    }
+                } else if (schemaType === 'scene') {
+                    // 使用[场景洞察]模板.json生成schema
+                    const sceneTemplate = fileCache['[场景洞察]模板.json'];
+                    if (sceneTemplate) {
+                        schema = generateJsonSchemaFromExample(sceneTemplate);
+                    }
+                } else {
+                    schema = null;
+                }
+            }
+            // 优化prompt结尾
+            let finalPrompt = prompt.trim();
+            if (!finalPrompt.match(/只输出纯JSON/)) {
+                finalPrompt += '\n\n【格式要求】只输出纯JSON，不要有任何markdown代码块标记（如```json）。';
+            }
+            console.log('[Gemini调试] 即将请求后端API:', {
+                url: window.location.origin + '/api/gemini',
+                model,
+                hasSchema: !!schema,
+                schemaType: schemaType || 'none',
+                prompt: finalPrompt.length > 200 ? finalPrompt.slice(0, 200) + '...（已截断）' : finalPrompt
+            });
+            try {
+                const resp = await fetch('/api/gemini', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt: finalPrompt, 
+                        model, 
+                        responseSchema: schema,
+                        schemaType: schemaType
+                    })
+                });
+                const text = await resp.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('[Gemini调试] 响应非JSON:', text);
+                    throw new Error('后端返回非JSON格式: ' + text);
+                }
+                console.log('[Gemini调试] 后端响应:', data);
+                if (!resp.ok) {
+                    throw new Error(data.error || '后端Gemini API请求失败');
+                }
+                // --- 兜底清洗 ---
+                let result = data.result;
+                if (typeof result === 'string') {
+                    // 去除markdown代码块
+                    result = result.replace(/```json[\s\S]*?```/g, m => m.replace(/```json|```/g, '').trim());
+                    result = result.replace(/```[\s\S]*?```/g, m => m.replace(/```/g, '').trim());
+                    
+                    // 尝试多种方式提取JSON
+                    let jsonMatch = null;
+                    
+                    // 方法1：尝试提取第一个合法JSON对象或数组
+                    jsonMatch = result.match(/({[\s\S]*}|\[[\s\S]*\])/);
+                    if (jsonMatch) {
+                        result = jsonMatch[0];
+                    }
+                    
+                    // 方法2：如果方法1失败，尝试修复常见的JSON错误
+                    if (!jsonMatch) {
+                        // 修复常见的JSON格式问题
+                        result = result
+                            .replace(/,\s*}/g, '}')  // 移除对象末尾多余的逗号
+                            .replace(/,\s*]/g, ']')  // 移除数组末尾多余的逗号
+                            .replace(/}\s*,\s*}/g, '}}')  // 修复嵌套对象
+                            .replace(/]\s*,\s*]/g, ']]')  // 修复嵌套数组
+                            .replace(/}\s*,\s*]/g, '}]')  // 修复对象数组混合
+                            .replace(/]\s*,\s*}/g, ']}'); // 修复数组对象混合
+                        
+                        // 新增：专门修复数组元素间缺少逗号的问题
+                        // 这是针对"Expected ',' or ']' after array element"错误的专门修复
+                        result = result
+                            // 修复数组中的对象之间缺少逗号
+                            .replace(/}\s*}/g, '},}')  // 对象后直接跟对象，添加逗号
+                            .replace(/}\s*\[/g, '},[')  // 对象后直接跟数组，添加逗号
+                            .replace(/]\s*}/g, '],}')  // 数组后直接跟对象，添加逗号
+                            .replace(/]\s*\[/g, '],[')  // 数组后直接跟数组，添加逗号
+                            // 修复字符串后缺少逗号
+                            .replace(/"\s*"/g, '","')  // 字符串后直接跟字符串，添加逗号
+                            .replace(/"\s*}/g, '",}')  // 字符串后直接跟对象结束，添加逗号
+                            .replace(/"\s*]/g, '",]')  // 字符串后直接跟数组结束，添加逗号
+                            .replace(/"\s*\{/g, '",{')  // 字符串后直接跟对象开始，添加逗号
+                            .replace(/"\s*\[/g, '",[')  // 字符串后直接跟数组开始，添加逗号
+                            // 修复数字后缺少逗号
+                            .replace(/(\d+)\s*"/g, '$1,"')  // 数字后直接跟字符串，添加逗号
+                            .replace(/(\d+)\s*}/g, '$1,}')  // 数字后直接跟对象结束，添加逗号
+                            .replace(/(\d+)\s*]/g, '$1,]')  // 数字后直接跟数组结束，添加逗号
+                            .replace(/(\d+)\s*\{/g, '$1,{')  // 数字后直接跟对象开始，添加逗号
+                            .replace(/(\d+)\s*\[/g, '$1,[')  // 数字后直接跟数组开始，添加逗号
+                            // 修复布尔值和null后缺少逗号
+                            .replace(/(true|false|null)\s*"/g, '$1,"')  // 布尔值/null后直接跟字符串，添加逗号
+                            .replace(/(true|false|null)\s*}/g, '$1,}')  // 布尔值/null后直接跟对象结束，添加逗号
+                            .replace(/(true|false|null)\s*]/g, '$1,]')  // 布尔值/null后直接跟数组结束，添加逗号
+                            .replace(/(true|false|null)\s*\{/g, '$1,{')  // 布尔值/null后直接跟对象开始，添加逗号
+                            .replace(/(true|false|null)\s*\[/g, '$1,['); // 布尔值/null后直接跟数组开始，添加逗号
+                        
+                        // 再次尝试匹配
+                        jsonMatch = result.match(/({[\s\S]*}|\[[\s\S]*\])/);
+                        if (jsonMatch) {
+                            result = jsonMatch[0];
+                        }
+                    }
+                    
+                    try {
+                        result = JSON.parse(result);
+                    } catch (e) {
+                        console.warn('[Gemini调试] JSON解析失败，尝试手动修复:', e.message);
+                        
+                        // 方法3：手动修复常见的JSON错误
+                        try {
+                            // 修复引号问题
+                            result = result
+                                .replace(/([^\\])"/g, '$1\\"')  // 转义未转义的引号
+                                .replace(/\\"/g, '"')  // 修复过度转义
+                                .replace(/\\\\/g, '\\');  // 修复反斜杠
+                            
+                            // 修复换行符问题
+                            result = result
+                                .replace(/\n/g, '\\n')
+                                .replace(/\r/g, '\\r')
+                                .replace(/\t/g, '\\t');
+                            
+                            result = JSON.parse(result);
+                        } catch (e2) {
+                            // 解析失败，允许重试
+                            if (retryCount < 2) {
+                                console.warn(`[Gemini调试] 第${retryCount+1}次解析失败，重试...`);
+                                await new Promise(res => setTimeout(res, 1000));
+                                return await callGeminiAPI(prompt, responseSchema, schemaType, retryCount + 1);
+                            } else {
+                                console.error('[Gemini调试] 最终解析失败，原始内容:', result.slice(0, 500));
+                                throw new Error('Gemini返回内容不是合法JSON: ' + result.slice(0, 200));
+                            }
+                        }
+                    }
+                }
+                return result;
+            } catch (error) {
+                if (retryCount < 2) {
+                    console.warn(`[Gemini调试] API调用失败，第${retryCount+1}次重试...`, error);
+                    
+                    // 检查是否是配额超限错误
+                    if (error.message.includes('quota') || error.message.includes('Quota') || error.message.includes('exceeded')) {
+                        console.warn('[Gemini调试] 检测到配额超限错误，后端会自动切换到PRO密钥');
+                        // 对于配额超限错误，等待更长时间再重试
+                        await new Promise(res => setTimeout(res, 3000));
+                    } else {
+                        // 其他错误，正常等待
+                        await new Promise(res => setTimeout(res, 1000));
+                    }
+                    
+                    return await callGeminiAPI(prompt, responseSchema, schemaType, retryCount + 1);
+                }
+                throw new Error('Gemini后端API调用失败: ' + error.message);
+            }
+        }
+
+        // 从示例对象自动生成JSON Schema的函数
+        function generateJsonSchemaFromExample(example) {
+            if (example === null) {
+                return { type: "null" };
+            }
+            
+            if (Array.isArray(example)) {
+                if (example.length === 0) {
+                    return { type: "array", items: {} };
+                }
+                return {
+                    type: "array",
+                    items: generateJsonSchemaFromExample(example[0])
+                };
+            }
+            
+            if (typeof example === "object") {
+                const properties = {};
+                const required = [];
+                
+                for (const [key, value] of Object.entries(example)) {
+                    properties[key] = generateJsonSchemaFromExample(value);
+                    required.push(key);
+                }
+                
+                return {
+                    type: "object",
+                    properties,
+                    required
+                };
+            }
+            
+            return { type: typeof example };
+        }
+        
+        async function extractPdfText(file) {
+            const reader = new FileReader();
+            return new Promise((resolve, reject) => {
+                reader.onload = async (event) => {
+                    try {
+                        const pdfData = new Uint8Array(event.target.result);
+                        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                        let fullText = '';
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            fullText += textContent.items.map(item => item.str).join(' ');
+                        }
+                        // 去除所有空格
+                        fullText = fullText.replace(/\s+/g, '');
+                        resolve(fullText);
+                    } catch (error) {
+                        reject(new Error("无法解析PDF文件。"));
+                    }
+                };
+                reader.onerror = () => reject(new Error("读取文件失败。"));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+
+        // --- WORKFLOW NODE IMPLEMENTATIONS (WITH REAL API LOGIC) ---
+
+        // ==== 新增：健壮JSON修复函数（简化版，借鉴server.js repairJsonResponseEnhanced）====
+        function robustJsonRepair(text) {
+            if (typeof text !== 'string') return text;
+            let result = text;
+            // 去除markdown代码块
+            result = result.replace(/```json[\s\S]*?```/g, m => m.replace(/```json|```/g, '').trim());
+            result = result.replace(/```[\s\S]*?```/g, m => m.replace(/```/g, '').trim());
+            // 尝试提取第一个合法JSON对象或数组
+            let jsonMatch = result.match(/({[\s\S]*}|\[[\s\S]*\])/);
+            if (jsonMatch) {
+                result = jsonMatch[0];
+            }
+            // 常见修复
+            result = result
+                .replace(/,\s*}/g, '}')
+                .replace(/,\s*]/g, ']')
+                .replace(/}\s*,\s*}/g, '}}')
+                .replace(/]\s*,\s*]/g, ']]')
+                .replace(/}\s*,\s*]/g, '}]')
+                .replace(/]\s*,\s*}/g, ']}')
+                // 修复数组中的对象之间缺少逗号
+                .replace(/}\s*\{/g, '},{')
+                .replace(/}\s*\[/g, '},[')
+                .replace(/]\s*\{/g, '],{')
+                .replace(/]\s*\[/g, '],[')
+                // 修复字符串后缺少逗号
+                .replace(/"\s*"/g, '","')
+                .replace(/"\s*}/g, '",}')
+                .replace(/"\s*]/g, '",]')
+                .replace(/"\s*\{/g, '",{')
+                .replace(/"\s*\[/g, '",[')
+                // 修复数字后缺少逗号
+                .replace(/(\d+)\s*"/g, '$1,"')
+                .replace(/(\d+)\s*}/g, '$1,}')
+                .replace(/(\d+)\s*]/g, '$1,]')
+                .replace(/(\d+)\s*\{/g, '$1,{')
+                .replace(/(\d+)\s*\[/g, '$1,[')
+                // 修复布尔值和null后缺少逗号
+                .replace(/(true|false|null)\s*"/g, '$1,"')
+                .replace(/(true|false|null)\s*}/g, '$1,}')
+                .replace(/(true|false|null)\s*]/g, '$1,]')
+                .replace(/(true|false|null)\s*\{/g, '$1,{')
+                .replace(/(true|false|null)\s*\[/g, '$1,[');
+            // 尝试补全缺失的结尾大括号
+            const leftBraces = (result.match(/{/g) || []).length;
+            const rightBraces = (result.match(/}/g) || []).length;
+            if (leftBraces > rightBraces) {
+                result += '}'.repeat(leftBraces - rightBraces);
+            }
+            const leftBrackets = (result.match(/\[/g) || []).length;
+            const rightBrackets = (result.match(/]/g) || []).length;
+            if (leftBrackets > rightBrackets) {
+                result += ']'.repeat(leftBrackets - rightBrackets);
+            }
+            return result;
+        }
+        // ==== END robustJsonRepair ====
+
+        async function runNode1(state) {
+            workflowState.currentNodeId = 1;
+            workflowState.currentNodeName = "产品信息深度提取";
+            console.log("=== 节点1: 产品信息深度提取 ===");
+            console.log("输入状态:", state);
+            
+            let pdfTextContent = `文件名: ${uploadedPdfFile ? uploadedPdfFile.name : '未提供'}. `;
+            if (uploadedPdfFile) {
+                try {
+                     updateStatus(1, '正在提取PDF文本...', 'processing');
+                     console.log("正在提取PDF文件内容:", uploadedPdfFile.name);
+                     pdfTextContent += await extractPdfText(uploadedPdfFile);
+                     console.log("PDF文本提取完成，内容长度:", pdfTextContent.length);
+                } catch(e) {
+                     console.warn("PDF文本提取失败，将使用文件名进行分析。", e);
+                     pdfTextContent += "无法提取PDF内容，请确保文件未损坏。";
+                }
+            } else {
+                console.log("未提供PDF文件，使用默认产品信息");
+                pdfTextContent += "无PDF文件，使用默认产品信息。";
+            }
+            // 合并补充文本信息
+            if (supplementalText && supplementalText.trim().length > 0) {
+                pdfTextContent += `\n\n【补充信息】：${supplementalText.trim()}`;
+            }
+            workflowState.pdfText = pdfTextContent; 
+
+            const prompt = `作为小红书平台的内容营销策略专家，请基于以下产品信息，构建一个完整的产品价值知识库：\n\n${pdfTextContent}\n\n请从包括但不局限于以下角度深入分析：目标用户画像（年龄、职业、生活方式、消费习惯等）、核心价值主张、用户痛点分析（产品解决的具体问题）、解决方案详解（产品如何解决这些问题）、产品优势对比（与竞品相比的独特优势）、典型使用场景、技术亮点解析（核心技术参数及其价值），如果其中不存在以上信息，不要自行臆造，请汇总以上产品信息，以JSON格式输出，。JSON字段名请使用中文。`;
+            console.log("发送到Gemini API的提示词:", prompt);
+            
+            let result = await callGeminiAPI(prompt, true);
+            // ==== 新增健壮修复 ====
+            if (typeof result === 'string') {
+                let repaired = robustJsonRepair(result);
+                try {
+                    result = JSON.parse(repaired);
+                } catch (e) {
+                    // 兜底：只截取到最后一个完整的}
+                    const lastBrace = repaired.lastIndexOf('}');
+                    if (lastBrace !== -1) {
+                        try {
+                            result = JSON.parse(repaired.slice(0, lastBrace + 1));
+                        } catch (e2) {
+                            result = { raw: repaired, error: e2.message };
+                        }
+                    } else {
+                        result = { raw: repaired, error: e.message };
+                    }
+                }
+            }
+            // ==== END ====
+            console.log("节点1输出结果:", result);
+            
+            return { ...state, 产品卖点: result };
+        }
+
+        async function runNode3(state) {
+            workflowState.currentNodeId = 3;
+            workflowState.currentNodeName = "生成小红书内容与KOL策略";
+            console.log("=== 节点3: 生成小红书内容与KOL策略 ===");
+            console.log("输入状态:", state);
+            
+            const prompt = `作为小红书营销专家，请基于以下产品信息，制定完整的内容营销策略：\n\n${JSON.stringify(state.产品卖点)}\n\n请使用中文，请从包括但不局限于以下方面制定策略：\n\n1. KOL策略：\n   - 整体策略思路\n   - KOL层级分布建议\n   - 各类型KOL选择标准\n   - 内容风格要求\n   - 合作重点方向\n\n2. 内容策略：\n   - 核心传播主题\n   - 重点沟通场景\n   - 内容方向建议\n   - 内容创作规范\n   - 审稿标准\n\n请以JSON格式输出，确保策略具有可执行性和创新性。\n【格式要求】严格输出合法JSON，不要有多余注释、不要有多余文本、不要有多余的markdown代码块标记（如\`\`\`json）。`;
+            console.log("发送到Gemini API的提示词:", prompt);
+            
+            let result = await callGeminiAPI(prompt, true);
+            // ==== 新增健壮修复 ====
+            if (typeof result === 'string') {
+                let repaired = robustJsonRepair(result);
+                try {
+                    result = JSON.parse(repaired);
+                } catch (e) {
+                    // 兜底：只截取到最后一个完整的}
+                    const lastBrace = repaired.lastIndexOf('}');
+                    if (lastBrace !== -1) {
+                        try {
+                            result = JSON.parse(repaired.slice(0, lastBrace + 1));
+                        } catch (e2) {
+                            result = { raw: repaired, error: e2.message };
+                        }
+                    } else {
+                        result = { raw: repaired, error: e.message };
+                    }
+                }
+            }
+            // ==== END ====
+            console.log("节点3原始输出结果:", result);
+            
+            // 确保结果格式正确
+            const formattedResult = {
+                KOL媒介策略: { 
+                    title: "KOL媒介策略", 
+                    data: result.kol_strategy || result.KOL策略 || result 
+                },
+                内容创作策略及审稿规则: { 
+                    title: "内容创作策略以及审稿规则", 
+                    data: result.content_strategy || result.内容策略 || result 
+                }
+            };
+            
+            console.log("节点3格式化后的结果:", formattedResult);
+            return { ...state, ...formattedResult };
+        }
+        
+        async function runNode4(state) {
+            workflowState.currentNodeId = 4;
+            workflowState.currentNodeName = "人群库智能匹配与排序";
+            console.log("=== 节点4: 人群库智能匹配与排序 ===");
+            // 检查缓存中的全量人群数据
+            const allAudiences = fileCache['全量人群.json'] || [];
+            console.log("缓存中的全量人群数据:", {
+                totalCount: allAudiences.length,
+                sampleData: allAudiences.slice(0, 2)
+            });
+            // 预处理人群数据，只保留必要字段
+            const simplifiedAudiences = allAudiences.map(audience => ({
+                groupName: audience.groupName || "",
+                typeOption: audience.typeOption || "",
+                industryOption: audience.industryOption || "",
+                groupDesc: audience.groupDesc || "",
+                coverNum: audience.coverNum || 0,
+                人群类型: audience.人群类型 || ""
+            }));
+            // 判断模型
+            if (GEMINI_MODEL === 'gemini-2.5-pro-preview-06-05') {
+                // --- pro模型：单人群分批并发 ---
+                const BATCH_SIZE = 10;
+                const batches = [];
+                for (let i = 0; i < simplifiedAudiences.length; i += BATCH_SIZE) {
+                    batches.push(simplifiedAudiences.slice(i, i + BATCH_SIZE));
+                }
+                console.log(`pro模型：将人群数据分为 ${batches.length} 批，每批 ${BATCH_SIZE} 个`);
+                let allResults = [];
+                let totalProcessed = 0;
+                let totalMatched = 0;
+                let totalRejected = 0;
+                for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+                    const batch = batches[batchIdx];
+                    console.log(`处理第${batchIdx+1}批/${batches.length}...`);
+                    // 并发处理本批所有人群
+                    const results = await Promise.all(batch.map(async (aud, idx) => {
+                        const prompt = `作为人群分析专家，请基于以下产品信息和内容策略，对目标人群进行智能匹配和打分：\n\n产品信息：\n${JSON.stringify(state.产品卖点, null, 2)}\n\n内容策略：\n${JSON.stringify(state.内容创作策略及审稿规则.data, null, 2)}\n\n当前人群数据：\n${JSON.stringify(aud, null, 2)}\n\n请对该人群进行以下分析：\n1. 分析industryOption字段与产品卖点的匹配度\n2. 如果industryOption为空，则分析groupName和groupDesc与产品卖点的匹配度\n3. 给出0-100的评分，并详细说明评分理由\n4. 如果与产品完全无关，直接拒绝（不输出该人群）\n\n请以JSON格式输出，格式要求：\n{\n  "matchedCrowds": [\n    {\n      "groupName": "人群名称",\n      "typeOption": "人群类型",\n      "industryOption": "行业",\n      "groupDesc": "人群描述",\n      "coverNum": 覆盖人数,\n      "人群类型": "人群类型",\n      "score": 评分(0-100),\n      "reasoning": "详细的评分理由"\n    }\n  ],\n  "batchStatistics": {\n    "totalProcessed": 1,\n    "matchedCount": 匹配人数,\n    "rejectedCount": 拒绝人数,\n    "rejectionReasons": ["被拒绝的主要原因"]\n  }\n}`;
+                        
+                        let retry = 0;
+                        const maxRetries = 3;
+                        while (retry < maxRetries) {
+                            try {
+                                const result = await callGeminiAPI(prompt, true, 'crowd');
+                                if (result && result.matchedCrowds && result.matchedCrowds.length > 0) {
+                                    // 验证数据完整性，确保每个字段都正确对应
+                                    const validatedCrowds = result.matchedCrowds.map(crowd => {
+                                        // 确保数据字段与原始人群对应
+                                        return {
+                                            groupName: crowd.groupName || aud.groupName,
+                                            typeOption: crowd.typeOption || aud.typeOption,
+                                            industryOption: crowd.industryOption || aud.industryOption,
+                                            groupDesc: crowd.groupDesc || aud.groupDesc,
+                                            coverNum: crowd.coverNum || aud.coverNum,
+                                            人群类型: crowd.人群类型 || aud.人群类型,
+                                            score: crowd.score || 50,
+                                            reasoning: crowd.reasoning || "API返回数据不完整"
+                                        };
+                                    });
+                                    allResults = allResults.concat(validatedCrowds);
+                                    totalMatched += validatedCrowds.length;
+                                }
+                                if (result && result.batchStatistics) {
+                                    totalProcessed += result.batchStatistics.totalProcessed || 1;
+                                    totalRejected += result.batchStatistics.rejectedCount || 0;
+                                    console.log(`单人群统计:`, result.batchStatistics);
+                                }
+                                return; // 成功则退出重试循环
+                            } catch (error) {
+                                retry++;
+                                console.warn(`单人群第${retry}次尝试失败:`, error.message);
+                                
+                                if (retry >= maxRetries) {
+                                    console.error(`单人群连续${maxRetries}次失败，跳过该人群`);
+                                    totalProcessed += 1;
+                                    totalRejected += 1;
+                                    // 不再为失败的人群生成默认结果，避免数据错配
+                                } else {
+                                    // 等待时间递增
+                                    await new Promise(res => setTimeout(res, 1000 * retry));
+                                }
+                            }
+                        }
+                    }));
+                    // 等待本批全部完成后再处理下一批
+                }
+                // 按评分排序，取前40个
+                allResults.sort((a, b) => (b.score || 0) - (a.score || 0));
+                const top40 = allResults.slice(0, 40);
+                const allResultsExcel = { data: allResults.map(p => ({
+                    '人群名称': p.groupName, '人群类型': p.typeOption, '行业': p.industryOption,
+                    '人群描述': p.groupDesc, '覆盖人数': p.coverNum, '评分': p.score, '打分理由': p.reasoning
+                })) };
+                const formattedResult = {
+                    合并人群_40: {
+                        matchedCrowds: top40,
+                        statistics: {
+                            totalAnalyzed: allAudiences.length,
+                            matchedCount: totalMatched,
+                            rejectedCount: totalRejected,
+                            outputCount: top40.length,
+                            matchRate: `${((totalMatched / allAudiences.length) * 100).toFixed(2)}%`,
+                            rejectionRate: `${((totalRejected / allAudiences.length) * 100).toFixed(2)}%`
+                        }
+                    },
+                    allResultsExcel
+                };
+                console.log("节点4格式化后的结果:", formattedResult);
+                return { ...state, ...formattedResult };
+            } else {
+                // --- 其它模型，保持原有批量prompt逻辑 ---
+                const BATCH_SIZE = 20; // 每批处理20个人群
+                const batches = [];
+                for (let i = 0; i < simplifiedAudiences.length; i += BATCH_SIZE) {
+                    batches.push(simplifiedAudiences.slice(i, i + BATCH_SIZE));
+                }
+                console.log(`将人群数据分为 ${batches.length} 批处理，每批 ${BATCH_SIZE} 个人群`);
+                let allResults = [];
+                let totalProcessed = 0;
+                let totalMatched = 0;
+                let totalRejected = 0;
+                // 并发处理，每次最多10个批次
+                const CONCURRENT_LIMIT = 10;
+                let batchIndex = 0;
+                while (batchIndex < batches.length) {
+                    const currentBatchGroup = batches.slice(batchIndex, batchIndex + CONCURRENT_LIMIT);
+                    const promises = currentBatchGroup.map((batch, idx) => {
+                        const realIndex = batchIndex + idx;
+                        const prompt = `作为人群分析专家，请基于以下产品信息和内容策略，对目标人群进行智能匹配和打分：\n\n产品信息：\n${JSON.stringify(state.产品卖点, null, 2)}\n\n内容策略：\n${JSON.stringify(state.内容创作策略及审稿规则.data, null, 2)}\n\n当前批次人群数据（第${realIndex + 1}批，共${batches.length}批）：\n${JSON.stringify(batch, null, 2)}\n\n请对上述人群数据进行以下分析：\n1. 分析人群的industryOption字段与产品卖点的匹配度\n2. 如果industryOption为空，则分析groupName和groupDesc与产品卖点的匹配度\n3. 对于每个匹配的人群，给出0-100的评分，并详细说明评分理由\n4. 删除与产品完全无关的人群\n\n请以JSON格式输出，格式要求：\n{\n    "matchedCrowds": [\n        {\n            "groupName": "人群名称",\n            "typeOption": "人群类型",\n            "industryOption": "行业",\n            "groupDesc": "人群描述",\n            "coverNum": 覆盖人数,\n            "人群类型": "人群类型",\n            "score": 评分(0-100),\n            "reasoning": "详细的评分理由"\n        }\n    ],\n    "batchStatistics": {\n        "totalProcessed": "本批次处理的总人数",\n        "matchedCount": "本批次匹配的人数",\n        "rejectedCount": "本批次被拒绝的人数",\n        "rejectionReasons": ["被拒绝的主要原因"]\n    }\n}`;
+                        // 增加重试机制
+                        return (async () => {
+                            let retry = 0;
+                            const maxRetries = 3;
+                            while (retry < maxRetries) {
+                                try {
+                                    const result = await callGeminiAPI(prompt, true, 'crowd');
+                                    if (result && result.matchedCrowds) {
+                                        // 验证数据完整性，确保每个字段都正确对应
+                                        const validatedCrowds = result.matchedCrowds.map(crowd => {
+                                            // 在批次中找到对应的人群数据
+                                            const originalCrowd = batch.find(b => b.groupName === crowd.groupName);
+                                            return {
+                                                groupName: crowd.groupName || (originalCrowd ? originalCrowd.groupName : ''),
+                                                typeOption: crowd.typeOption || (originalCrowd ? originalCrowd.typeOption : ''),
+                                                industryOption: crowd.industryOption || (originalCrowd ? originalCrowd.industryOption : ''),
+                                                groupDesc: crowd.groupDesc || (originalCrowd ? originalCrowd.groupDesc : ''),
+                                                coverNum: crowd.coverNum || (originalCrowd ? originalCrowd.coverNum : 0),
+                                                人群类型: crowd.人群类型 || (originalCrowd ? originalCrowd.人群类型 : ''),
+                                                score: crowd.score || 50,
+                                                reasoning: crowd.reasoning || "API返回数据不完整"
+                                            };
+                                        });
+                                        allResults = allResults.concat(validatedCrowds);
+                                        totalMatched += validatedCrowds.length;
+                                    }
+                                    if (result && result.batchStatistics) {
+                                        totalProcessed += result.batchStatistics.totalProcessed;
+                                        totalRejected += result.batchStatistics.rejectedCount;
+                                        console.log(`批次 ${realIndex + 1} 统计:`, result.batchStatistics);
+                                    }
+                                    return; // 成功则退出重试循环
+                                } catch (error) {
+                                    retry++;
+                                    console.warn(`批次 ${realIndex + 1} 第${retry}次尝试失败:`, error.message);
+                                    
+                                    if (retry >= maxRetries) {
+                                        console.error(`批次 ${realIndex + 1} 连续${maxRetries}次失败，跳过该批次`);
+                                        totalProcessed += batch.length;
+                                        totalRejected += batch.length;
+                                        // 不再为失败的批次生成默认结果，避免数据错配
+                                    } else {
+                                        // 等待时间递增
+                                        await new Promise(res => setTimeout(res, 1000 * retry));
+                                    }
+                                }
+                            }
+                        })();
+                    });
+                    await Promise.all(promises);
+                    batchIndex += CONCURRENT_LIMIT;
+                }
+                // 按评分排序，取前40个
+                allResults.sort((a, b) => (b.score || 0) - (a.score || 0));
+                const top40 = allResults.slice(0, 40);
+                const allResultsExcel = { data: allResults.map(p => ({
+                    '人群名称': p.groupName, '人群类型': p.typeOption, '行业': p.industryOption,
+                    '人群描述': p.groupDesc, '覆盖人数': p.coverNum, '评分': p.score, '打分理由': p.reasoning
+                })) };
+                const formattedResult = {
+                    合并人群_40: {
+                        matchedCrowds: top40,
+                        statistics: {
+                            totalAnalyzed: allAudiences.length,
+                            matchedCount: totalMatched,
+                            rejectedCount: totalRejected,
+                            outputCount: top40.length,
+                            matchRate: `${((totalMatched / allAudiences.length) * 100).toFixed(2)}%`,
+                            rejectionRate: `${((totalRejected / allAudiences.length) * 100).toFixed(2)}%`
+                        }
+                    },
+                    allResultsExcel
+                };
+                console.log("节点4格式化后的结果:", formattedResult);
+                return { ...state, ...formattedResult };
+            }
+        }
+
+        async function runNode5(state) {
+            workflowState.currentNodeId = 5;
+            workflowState.currentNodeName = "AI驱动的新人群探索与整合";
+            console.log("=== 节点5: AI驱动的新人群探索与整合 ===");
+            console.log("输入状态:", state);
+
+            // 获取节点4输出的40个高分人群
+            const highScoringCrowds = state.合并人群_40.matchedCrowds;
+            console.log(`使用节点4输出的${highScoringCrowds.length}个高分人群进行新人群探索`);
+
+            // 优化：只使用前10个高分人群作为参考，减少token数量
+            const top10Crowds = highScoringCrowds.slice(0, 10);
+            
+            // 提取关键特征，而不是完整JSON
+            const crowdFeatures = top10Crowds.map(crowd => ({
+                name: crowd.groupName,
+                type: crowd.typeOption,
+                industry: crowd.industryOption,
+                description: crowd.groupDesc?.substring(0, 100) + '...', // 截断描述
+                score: crowd.score
+            }));
+
+            const prompt = `**角色**: 你是一位富有创造力的市场策略师。
+
+**任务**: 基于已有的高分人群特征，额外探索5-10个匹配本产品的新人群。
+
+**已有高分人群特征**（前10个）:
+${JSON.stringify(crowdFeatures, null, 2)}
+
+**产品核心信息**:
+${JSON.stringify({
+    目标用户: state.产品卖点?.目标用户画像 || '未提供',
+    核心价值: state.产品卖点?.核心价值主张 || '未提供',
+    使用场景: state.产品卖点?.典型使用场景 || '未提供'
+}, null, 2)}
+
+**要求**:
+1. 分析已有高分人群的共同特征和模式
+2. 额外探索5-10个全新的、高潜力的目标人群
+3. 新人群必须满足以下条件：
+   - 与产品高度相关
+   - 具有独特的价值主张
+   - 有明确的消费场景
+   - 不能与已有高分人群重复
+   - 不能使用全量人群数据中已有的人群
+   - 打分规则必须与已有高分人群保持一致
+4. 新人群的特定要求：
+   - typeOption 必须设置为 "AI探索"
+   - coverNum 设置为空字符串
+   - 每个新人群都需要详细的评分理由
+
+**输出格式**:
+{
+  "matchedCrowds": [
+    {
+      "groupName": "人群名称",
+      "typeOption": "AI探索",
+      "industryOption": "相关行业",
+      "groupDesc": "详细的人群描述",
+      "coverNum": "",
+      "人群类型": "AI探索",
+      "score": 85,
+      "reasoning": "详细的评分理由"
+    }
+  ]
+}
+
+请以JSON格式输出，确保格式正确。`;
+            
+            // 增加重试机制和错误处理
+            let result;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries) {
+                try {
+                    result = await callGeminiAPI(prompt, true, 'crowd');
+                    
+                    // 验证新探索人群的数据完整性
+                    if (result && result.matchedCrowds && result.matchedCrowds.length > 0) {
+                        const validatedNewCrowds = result.matchedCrowds.map(crowd => {
+                            // 确保新人群数据完整且符合要求
+                            return {
+                                groupName: crowd.groupName || `AI探索人群${Math.random().toString(36).substr(2, 5)}`,
+                                typeOption: "AI探索",
+                                industryOption: crowd.industryOption || "AI探索",
+                                groupDesc: crowd.groupDesc || "AI探索生成的人群",
+                                coverNum: "",
+                                人群类型: "AI探索",
+                                score: crowd.score || 70,
+                                reasoning: crowd.reasoning || "AI探索生成的人群"
+                            };
+                        });
+                        
+                        // 验证新人群不与现有人群重复
+                        const existingNames = highScoringCrowds.map(c => c.groupName);
+                        const uniqueNewCrowds = validatedNewCrowds.filter(crowd => 
+                            !existingNames.includes(crowd.groupName)
+                        );
+                        
+                        result.matchedCrowds = uniqueNewCrowds;
+                        console.log(`AI探索成功，生成${uniqueNewCrowds.length}个新人群`);
+                    }
+                    
+                    break; // 成功则跳出循环
+                } catch (error) {
+                    retryCount++;
+                    console.warn(`节点5第${retryCount}次尝试失败:`, error.message);
+                    
+                    if (retryCount >= maxRetries) {
+                        console.warn('节点5 AI探索失败，使用备用方案生成人群数据');
+                        // 备用方案：基于现有高分人群生成变体
+                        result = generateBackupCrowds(highScoringCrowds, state.产品卖点);
+                        break;
+                    }
+                    
+                    // 等待时间递增
+                    await new Promise(res => setTimeout(res, 2000 * retryCount));
+                }
+            }
+            
+            const newCrowds = result?.matchedCrowds || [];
+            
+            // 合并原有高分人群和新探索的人群
+            const combined = [...highScoringCrowds, ...newCrowds].sort((a,b) => (b.score || 0) - (a.score || 0));
+            
+            // Excel 数据
+            const finalMergedExcel = { data: combined.map(p => ({
+                '人群名称': p.groupName, '人群类型': p.typeOption, '行业': p.industryOption,
+                '人群描述': p.groupDesc, '覆盖人数': p.coverNum, '评分': p.score, '打分理由': p.reasoning
+            })) };
+            
+            console.log(`节点5完成：
+- 原有高分人群: ${highScoringCrowds.length}个
+- 新增探索人群: ${newCrowds.length}个
+- 最终合并人群: ${combined.length}个`);
+
+            return { ...state, 最终合并人群: { matchedCrowds: combined }, finalMergedExcel };
+        }
+
+        // 备用人群生成函数
+        function generateBackupCrowds(highScoringCrowds, productInfo) {
+            console.log('使用备用方案生成人群数据');
+            
+            const backupCrowds = [];
+            const industries = ['美妆护肤', '时尚配饰', '生活方式', '健康养生', '数码科技', '家居生活'];
+            
+            // 基于现有高分人群生成变体
+            highScoringCrowds.slice(0, 5).forEach((crowd, index) => {
+                const baseScore = crowd.score || 80;
+                const variations = [
+                    {
+                        groupName: `${crowd.groupName}（深度用户）`,
+                        typeOption: "AI探索",
+                        industryOption: crowd.industryOption || industries[index % industries.length],
+                        groupDesc: `基于${crowd.groupName}的深度用户群体，具有更强的消费能力和品牌忠诚度`,
+                        coverNum: "",
+                        人群类型: "AI探索",
+                        score: Math.min(100, baseScore + 5),
+                        reasoning: `基于原人群${crowd.groupName}的深度用户变体，具有更高的消费潜力`
+                    },
+                    {
+                        groupName: `${crowd.groupName}（新兴市场）`,
+                        typeOption: "AI探索",
+                        industryOption: crowd.industryOption || industries[index % industries.length],
+                        groupDesc: `基于${crowd.groupName}的新兴市场用户，具有成长潜力和创新消费习惯`,
+                        coverNum: "",
+                        人群类型: "AI探索",
+                        score: Math.max(60, baseScore - 10),
+                        reasoning: `基于原人群${crowd.groupName}的新兴市场变体，具有成长潜力`
+                    }
+                ];
+                backupCrowds.push(...variations);
+            });
+            
+            return { matchedCrowds: backupCrowds };
+        }
+
+        async function runNode6(state) {
+             workflowState.currentNodeId = 6;
+             workflowState.currentNodeName = "筛选并输出Top30核心人群";
+            console.log("节点 6: 本地数据处理 - 筛选Top 30...");
+            const top30 = state.最终合并人群.matchedCrowds.slice(0, 30);
+            const dataForExcel = top30.map(p => ({
+                '人群名称': p.groupName, '人群类型': p.typeOption, '行业': p.industryOption,
+                '人群描述': p.groupDesc, '覆盖人数': p.coverNum, '评分': p.score, '打分理由': p.reasoning
+            }));
+            const top30Excel = { data: dataForExcel };
+            return { ...state, 人群高分: { data: dataForExcel, raw: top30 }, top30Excel };
+        }
+        
+        async function runNode7(state) {
+            workflowState.currentNodeId = 7;
+            workflowState.currentNodeName = "人群场景洞察与小红书话术生成";
+            const highScorerSamples = state.人群高分.raw; 
+            const productInfo = JSON.stringify(state.产品卖点);
+            const contentStrategy = JSON.stringify(state.内容创作策略及审稿规则);
+
+            // 单人群prompt模板
+            function buildPrompt(crowd) {
+                return `你是一位资深整合营销内容专家，请基于以下输入数据，完成深度人群分析与场景化内容生成：\n\n【输入数据】\n[人群]JSON数据: ${JSON.stringify(crowd)}\n[产品卖点]JSON数据: ${productInfo}\n[内容策略]JSON数据: ${contentStrategy}\n\n【核心任务与流程】\n1. 精细化人群拓展与洞察：\n  - 针对该人群，拓展3-5个更具体、更细分的"典型人群"，务必参考groupName和groupDesc，深入挖掘信息，确保每个"典型人群"画像细节丰富、场景感强。\n  - 对每个"典型人群"进行如下分析与内容创作：\n    - 识别"需求痛点"：阐述该典型人群在特定场景下的具体需求或未被满足的痛点。\n    - 匹配"产品卖点"：明确指出能满足上述需求痛点的产品卖点。\n    - 拓展"精细化使用场景"：为该典型人群设计1-2个具体、生动的使用场景。\n    - 定制"小红书核心话术"：为每个精细化场景撰写适合小红书平台的关键卖点表达话术，要求：\n      * 话术精准捕捉典型人群关注点和语言习惯，激发互动欲望，具备强种草能力，风格自然真实，避免过度营销。\n2. 输出要求：\n  - 分析结果与创作内容整合输出为单一JSON对象，命名为"整合人群场景洞察"。\n  - JSON结构需清晰展示：原始优质人群分组、拓展出的典型人群、每个典型人群的需求痛点、匹配卖点、精细化场景及其小红书核心话术。\n3. 总体要求：\n  - 确保输出JSON结构清晰、易于解析。\n  - 所有描述性内容详尽、生动、具有代入感，便于后续直接用于营销策略和内容创作。\n  - 充分利用所有输入数据，进行有洞察力的分析和创造性拓展。\n  - 全程使用中文。\n【格式要求】严格输出合法JSON，不要有多余注释、不要有多余文本、不要有多余的markdown代码块标记（如\`\`\`json）。`;
+            }
+
+            // 并发处理5个人群
+            const CONCURRENT_LIMIT = 5;
+            let allInsights = [];
+            let failedCrowds = []; // 记录失败的人群
+            let idx = 0;
+            
+            while (idx < highScorerSamples.length) {
+                const currentGroup = highScorerSamples.slice(idx, idx + CONCURRENT_LIMIT);
+                const promises = currentGroup.map(async (crowd, i) => {
+                    let retry = 0;
+                    const maxRetries = 3;
+                    
+                    while (retry < maxRetries) {
+                        try {
+                            const prompt = buildPrompt(crowd);
+                            const result = await callGeminiAPI(prompt, true, 'scene');
+                            // 兼容不同返回结构
+                            let sceneList = [];
+                            if (result && result.result && Array.isArray(result.result.整合人群场景洞察)) {
+                                sceneList = result.result.整合人群场景洞察;
+                            } else if (result && Array.isArray(result.整合人群场景洞察)) {
+                                sceneList = result.整合人群场景洞察;
+                            } else {
+                                sceneList = [];
+                            }
+                            if (sceneList.length > 0) {
+                                allInsights.push(sceneList[0]);
+                                console.log(`✅ 人群"${crowd?.groupName || sceneList[0]?.原始优质人群?.groupName || '未知人群'}"处理成功`);
+                                return; // 成功则退出重试循环
+                            } else {
+                                throw new Error('API返回数据格式不正确');
+                            }
+                        } catch (error) {
+                            retry++;
+                            if (retry >= maxRetries) {
+                                failedCrowds.push({ ...crowd, error: error.message });
+                                console.warn(`❌ 人群"${crowd?.groupName || '未知人群'}"处理失败:`, error.message);
+                                return;
+                            } else {
+                                await new Promise(res => setTimeout(res, 1000 * retry));
+                            }
+                        }
+                    }
+                });
+                await Promise.all(promises);
+                idx += CONCURRENT_LIMIT;
+            }
+
+            // 输出失败统计
+            if (failedCrowds.length > 0) {
+                console.log(`\n📊 节点7处理完成统计:`);
+                console.log(`✅ 成功处理: ${allInsights.length}个人群`);
+                console.log(`❌ 失败跳过: ${failedCrowds.length}个人群`);
+                console.log(`📋 失败人群列表:`);
+                failedCrowds.forEach((crowd, index) => {
+                    console.log(`   ${index + 1}. "${crowd.groupName}" - 错误: ${crowd.error}`);
+                });
+                console.log(`\n💡 建议: 失败的人群可能是由于API配额限制或网络问题，建议稍后重试或检查API配置`);
+            } else {
+                console.log(`\n🎉 节点7处理完成: 所有${allInsights.length}个人群都处理成功！`);
+            }
+
+            // 数据处理与输出
+            const dataForExcel = [];
+            
+            // 如果API调用全部失败，生成基础数据避免前端报错
+            if (allInsights.length === 0 && failedCrowds.length > 0) {
+                console.warn('⚠️ 所有API调用都失败了，生成基础数据避免前端报错');
+                failedCrowds.forEach((crowd, index) => {
+                    dataForExcel.push({
+                        '人群类别': crowd.groupName || '未知人群',
+                        '典型人群': 'API调用失败',
+                        '需求痛点': '网络连接问题导致无法生成',
+                        '匹配卖点': '请检查网络连接后重试',
+                        '精细化场景': 'API调用失败: 网络连接中断',
+                        '核心表达文案': '建议稍后重试或检查API配置',
+                    });
+                });
+            } else {
+                // 正常处理成功的数据
+                allInsights.forEach((group, idx) => {
+                    // 加强数据校验，遇到异常时详细打印日志并跳过
+                    if (!group) {
+                        console.warn(`❗ allInsights[${idx}] 为 undefined，跳过。原始内容:`, group);
+                        return;
+                    }
+                    if (!group.拓展典型人群 || !Array.isArray(group.拓展典型人群)) {
+                        console.warn(`❗ allInsights[${idx}] 缺少拓展典型人群字段或类型不对，跳过。原始内容:`, group);
+                        return;
+                    }
+                    try {
+                        group.拓展典型人群.forEach(persona => {
+                            // 检查persona是否存在且精细化使用场景是否为数组
+                            if(!persona || !persona.精细化使用场景 || !Array.isArray(persona.精细化使用场景)) return;
+                            try {
+                                persona.精细化使用场景.forEach(scene => {
+                                    // 检查scene是否存在且包含必要字段
+                                    if(!scene || !scene.场景名称 || !scene.场景描述 || !scene.小红书核心话术) return;
+                                    dataForExcel.push({
+                                        '人群类别': group.原始优质人群?.groupName || '未知人群',
+                                        '典型人群': persona.典型人群名称 || '未知典型人群',
+                                        '需求痛点': persona.需求痛点 || '未提供',
+                                        '匹配卖点': persona.匹配产品卖点 || '未提供',
+                                        '精细化场景': `${scene.场景名称}: ${scene.场景描述}`,
+                                        '核心表达文案': scene.小红书核心话术,
+                                    });
+                                });
+                            } catch (sceneError) {
+                                // 捕获精细化使用场景处理异常
+                                console.warn('精细化使用场景处理异常:', sceneError);
+                            }
+                        });
+                    } catch (e) {
+                        // 捕获拓展典型人群处理异常，避免前端报错
+                        console.warn('拓展典型人群处理异常:', e);
+                    }
+                });
+            }
+            
+            // 确保至少有基础数据，避免前端报错
+            if (dataForExcel.length === 0) {
+                console.warn('⚠️ 没有生成任何数据，创建默认记录避免前端报错');
+                dataForExcel.push({
+                    '人群类别': '系统提示',
+                    '典型人群': '数据处理完成',
+                    '需求痛点': 'API调用可能存在问题',
+                    '匹配卖点': '请检查网络连接和API配置',
+                    '精细化场景': '建议稍后重试或联系技术支持',
+                    '核心表达文案': '工作流执行完成，但数据生成可能不完整',
+                });
+            }
+
+            return { ...state, 场景洞察: { data: dataForExcel, raw: allInsights } };
+        }
+        
+        async function runNode8(state) {
+            workflowState.currentNodeId = 8;
+            workflowState.currentNodeName = "生成可交付的Excel营销场景表";
+            console.log("节点 8: 本地数据处理 - 准备最终下载文件...");
+            
+            // 获取产品名称作为前缀
+            const productName = getProductName();
+            const prefix = `[${productName}]`;
+            
+            const downloads = [
+                { name: `${prefix}[卖点]产品卖点.md`, content: { title: `产品卖点`, data: state.产品卖点 }, type: 'markdown' },
+                { name: `${prefix}KOL媒介策略.md`, content: state.KOL媒介策略, type: 'markdown' },
+                { name: `${prefix}内容创作策略以及审稿规则.md`, content: state.内容创作策略及审稿规则, type: 'markdown' },
+                { name: `${prefix}[人群]高分.xlsx`, content: state.人群高分, type: 'excel' },
+                { name: `${prefix}[场景洞察].xlsx`, content: state.场景洞察, type: 'excel' }
+            ];
+            return { ...state, finalDownloads: downloads };
+        }
+        
+        function initializeDefaultFileNames() {
+            templateAllAudienceFeedback.textContent = '默认: 全量人群.json';
+            templateAllAudienceFeedback.style.color = '#6b7280'; 
+            templateHighScoreAudienceFeedback.textContent = '默认: [人群]模板.json';
+            templateHighScoreAudienceFeedback.style.color = '#6b7280';
+            templateSceneInsightFeedback.textContent = '默认: [场景洞察]模板.json';
+            templateSceneInsightFeedback.style.color = '#6b7280';
+        }
+
+        // --- INITIALIZATION ---
+        async function initialize() {
+            initStatusUI();
+            initializeDefaultFileNames();
+            await loadFullAudienceData();
+        }
+
+        // 启动初始化
+        initialize();
+
+        // --- 文件上传解析 ---
+        document.getElementById('custom-core-crowds').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(firstSheet);
+                fileCache['自定义核心人群.xlsx'] = json;
+                document.getElementById('custom-core-crowds-feedback').textContent = `已加载: ${file.name} (${json.length}条)`;
+                document.getElementById('custom-core-crowds-feedback').style.color = '#16a34a';
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+
+</body>
+</html>

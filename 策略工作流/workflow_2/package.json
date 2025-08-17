@@ -1,0 +1,17 @@
+{
+  "name": "gemini-workflow-backend",
+  "version": "1.0.0",
+  "description": "Gemini API 代理后端服务",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "https-proxy-agent": "^7.0.6",
+    "node-fetch": "^2.6.7"
+  }
+}

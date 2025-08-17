@@ -1,0 +1,34 @@
+{
+  "1": {
+    "noteId": "note1",
+    "noteUrl": "https://www.xiaohongshu.com/explore/abc",
+    "comments": [
+      {
+        "user": "A",
+        "time": "昨天",
+        "content": "很好用！"
+      },
+      {
+        "user": "B",
+        "time": "1小时前",
+        "content": "一般般"
+      }
+    ]
+  },
+  "2": {
+    "noteId": "note2",
+    "noteUrl": "https://www.xiaohongshu.com/explore/def",
+    "comments": [
+      {
+        "user": "C",
+        "time": "07-22",
+        "content": "效果不行"
+      },
+      {
+        "user": "D",
+        "time": "3天前",
+        "content": "价格太贵了"
+      }
+    ]
+  }
+}

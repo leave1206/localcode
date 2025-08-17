@@ -1,0 +1,781 @@
+Gemini后端服务已启动，端口: 3101
+支持的模型: gemini-2.5-flash-preview-05-20, gemini-2.5-pro-preview-06-05, gemini-2.0-flash
+Token预估数量: 18244
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 40556 字符
+Token数量(预估): 18244
+payload大小: 61156 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行深入分析。\n\n**假设当前日期为：2024年7月23日**\n\n---\n\n### 1. 疑似负面评论逐条列出\n\n以下是根据评论内容判断的疑似负面评论：\n\n| 笔记编号 | 用户昵称 | 评论时间 | 评论内容 | 负面类型初步判断 |\n| :------- | :------- | :--------- | :------- | :--------------- |\n| 1        | 纸鸢     | 2024-06-30 | 哭的好丑啊 | 人身攻击/外貌贬低 |\n| 1        | 小橘子🍊 | 2024-06-14 | 这样真的对孩子的骨头不好我小时候就练现在啊妈也后悔让我练 | 产品/方法伤害担忧 |\n| 1        | seventhday | 2024-06-15 | 先长条件吧，别上来就这么狠 | 训练方法质疑 |\n| 2        | 夏目233  | 2024-07-18
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 4441,
+  '输出Token': 3686,
+  '总Token': 26371,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 18244
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 40556 字符
+Token数量(预估): 18244
+payload大小: 61156 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我对您提供的小红书评论区数据进行了详细分析。\n\n首先，我将所有评论时间统一转换为标准日期格式，并假设今天的日期为**2024年7月18日**，以此为基准进行相对时间的转换。\n\n---\n\n### 1. 疑似负面评论逐条列出\n\n以下是根据评论内容识别出的疑似负面评论：\n\n| 笔记编号 | 用户昵称 | 评论时间 | 评论内容 |\n| :------- | :------- | :------- | :------- |\n| 1        | 纸鸢     | 2024-06-30 | 哭的好丑啊 |\n| 1        | 小马爱吃小孩 | 2024-07-01 | 很疼啊，你没学过吧 |\n| 1        | 小橘子🍊 | 2024-06-14 | 这样真的对孩子的骨头不好我小时候就练现在啊妈也后悔让我练 |\n| 2        | veda     | 2024-07-15 | 重了将近40克 15％ |\n| 2        |
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 5675,
+  '输出Token': 1364,
+  '总Token': 25283,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '呃', "[呃R]" is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '呃', "[呃R]" is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '呃', "[呃R]" is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 15359
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 34232 字符
+Token数量(预估): 15359
+payload大小: 52362 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+Token预估数量: 15359
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 34232 字符
+Token数量(预估): 15359
+payload大小: 52362 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我对您提供的图拉斯小红书评论区数据进行了详细分析。\n\n首先，将所有相对日期转换为标准日期格式（假设分析日期为2024年7月17日）。\n\n### 1. 疑似负面评论列表\n\n以下是逐条列出的疑似负面评论：\n\n**笔记编号: 4**\n*   **用户昵称:** 海域函约\n    *   **评论时间:** 2024-06-28\n    *   **评论内容:** 这条视频怎么感觉疑似软广哈哈哈，不过确实他们家充电宝颜值都很高而且这两天各种平台直播我都刷到，甚至我前两天买的还要延迟发货了\n    *   **负面性质:** 延迟发货（服务问题），疑似软广（内容真实性质疑）\n*   **用户昵称:** 巴啦啦能量\n    *   **评论时间:** 2024-06-29\n    *   **评论内容:** 因为3c被撤销了 召回型号产品\n    *   **负面性质:** 产品安全/认证问题（3C撤销、召回）\n*   **用户昵称:** xy\n   
+[Token消耗统计] {
+  '输入Token': 15359,
+  '思考Token': 3758,
+  '输出Token': 4432,
+  '总Token': 23549,
+  '预估输入Token': 15359,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我对您提供的小红书评论区数据进行了详细分析。\n\n首先，将所有相对日期转换为标准日期格式（假设今天日期为 **2024-07-23**）。\n\n### 日期转换规则：\n*   \"2天前\" -> 2024-07-21\n*   \"昨天\" -> 2024-07-22\n*   \"7天前\" -> 2024-07-16\n*   \"6天前\" -> 2024-07-17\n*   \"5天前\" -> 2024-07-18\n*   \"4天前\" -> 2024-07-19\n*   \"3天前\" -> 2024-07-20\n*   \"1天前\" -> 2024-07-22\n*   \"31分钟前\", \"4小时前\", \"5小时前\", \"6小时前\", \"17小时前\", \"1小时前\", \"2小时前\", \"3小时前\" -> 2024-07-23\n*   \"MM-DD\" -> 2024-MM-DD (例如 \"06-30\" 
+[Token消耗统计] {
+  '输入Token': 15359,
+  '思考Token': 2692,
+  '输出Token': 5498,
+  '总Token': 23549,
+  '预估输入Token': 15359,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 18244
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 40556 字符
+Token数量(预估): 18244
+payload大小: 61156 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":18244,"totalTokenCount":26435,"promptTokensDetails":[{"modality":"TEXT","tokenCount":18244}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"caSBaJibHNuLqtsP7ay0-Aw"}
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 26435,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我将对您提供的评论区数据进行分析。为了确保分析的准确性，我们将假设今天的日期是 **2024年7月23日**，以便将所有相对时间（如“2天前”、“昨天”等）转换为标准日期格式。\n\n---\n\n### **1. 逐条列出疑似负面评论**\n\n以下是根据评论内容识别出的疑似负面评论：\n\n**笔记编号: 1**\n*   用户昵称: 纸鸢\n    *   评论时间: 2024-06-30\n    *   评论内容: 哭的好丑啊\n*   用户昵称: 小马爱吃小孩\n    *   评论时间: 2024-07-01\n    *   评论内容: 很疼啊，你没学过吧\n*   用户昵称: 小橘子🍊\n    *   评论时间: 2024-06-14\n    *   评论内容: 这样真的对孩子的骨头不好我小时候就练现在啊妈也后悔让我练\n*   用户昵称: seventhday\n    *   评论时间: 2024-06-15\n    *   评论内容: 先长条件
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 2420,
+  '输出Token': 5770,
+  '总Token': 26434,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 18244
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 40556 字符
+Token数量(预估): 18244
+payload大小: 61156 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行分析。首先，我将所有相对日期转换为标准日期格式，并假设今天的日期是 **2024-07-23**。\n\n---\n\n### 1. 逐条列出疑似负面评论\n\n以下是根据评论内容判断的疑似负面评论，包括笔记编号、用户昵称、评论时间、评论内容：\n\n**笔记编号: 1 (主题：舞蹈训练)**\n*   **用户昵称:** 纸鸢\n    *   **评论时间:** 2024-06-30\n    *   **评论内容:** 哭的好丑啊\n*   **用户昵称:** 小马爱吃小孩\n    *   **评论时间:** 2024-07-01\n    *   **评论内容:** 很疼啊，你没学过吧\n*   **用户昵称:** 小橘子🍊\n    *   **评论时间:** 2024-06-14\n    *   **评论内容:** 这样真的对孩子的骨头不好我小时候就练现在啊妈也后悔让我练\n*   **用户昵称:** seventhday\
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 5245,
+  '输出Token': 2945,
+  '总Token': 26434,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 18244
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 40556 字符
+Token数量(预估): 18244
+payload大小: 61156 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"好的，作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行详细分析。\n\n为了确保时间转换的准确性，我们假设当前的报告生成日期是 **2024年7月23日**。\n\n---\n\n## 小红书评论区舆情分析报告\n\n**报告日期：** 2024年7月23日\n\n### 1. 疑似负面评论逐条列出\n\n以下是根据评论内容筛选出的疑似负面评论：\n\n| 笔记编号 | 用户昵称 | 评论时间 | 评论内容 |\n| :------- | :------- | :------- | :------- |\n| 1        | 纸鸢     | 2024-06-30 | 哭的好丑啊 |\n| 1        | 小马爱吃小孩 | 2024-07-01 | 很疼啊，你没学过吧 |\n| 1        | 小橘子🍊 | 2024-06-14 | 这样真的对孩子的骨头不好我小时候就练现在啊妈也后悔让我练 |\n| 1        | seventhday | 2024-06-15 
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 3187,
+  '输出Token': 5003,
+  '总Token': 26434,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '心', "[心心眼R],[心心眼R]" is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 18244
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 40556 字符
+Token数量(预估): 18244
+payload大小: 61156 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"好的，作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行分析，并输出您所需的内容。\n\n**前提说明：**\n*   根据评论内容，本次舆情分析主要针对品牌“**图拉斯（TuLaoSi）**”，因为大部分负面和关注点都围绕其充电宝产品展开。其他笔记（如舞蹈、手机型号、关东煮）与图拉斯品牌无关，因此在分析中将不予纳入。\n*   所有日期将基于当前日期（假设为 **2024年7月23日**）进行转换。\n\n---\n\n### 1. 疑似负面评论逐条列出\n\n以下是针对“图拉斯”品牌在小红书评论区中发现的疑似负面评论：\n\n| 笔记编号 | 用户昵称             | 评论时间   | 评论内容                                                                                                                                               
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 3813,
+  '输出Token': 3269,
+  '总Token': 25326,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '好', "好的，作为品牌舆情分"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '好', "好的，作为品牌舆情分"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '好', "好的，作为品牌舆情分"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 18244
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 40556 字符
+Token数量(预估): 18244
+payload大小: 61156 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我对您提供的小红书评论区数据进行了详细分析。\n\n**假设当前日期为：2024年7月23日**\n\n---\n\n### 1. 逐条列出疑似负面评论\n\n以下是经过日期转换和内容筛选后的疑似负面评论：\n\n**笔记编号：6878a0ed0000000022030a80 (Note 2)**\n*   **用户昵称：** veda\n*   **评论时间：** 2024-07-20\n*   **评论内容：** 重了将近40克 15％\n*   **用户昵称：** 夏目233\n*   **评论时间：** 2024-07-18\n*   **评论内容：** 展开不直，我去看了，还是要掰一下，目前展开直的折叠屏只有华为x6，铰链很好\n\n**笔记编号：685e5ab7000000001001060a (Note 4 - 品牌：图拉斯)**\n*   **用户昵称：** 远辰\n*   **评论时间：** 2024-06-30\n*   **评论内容：** 等等，不超过2
+[Token消耗统计] {
+  '输入Token': 18244,
+  '思考Token': 5122,
+  '输出Token': 3068,
+  '总Token': 26434,
+  '预估输入Token': 18244,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '作', "作为品牌舆情分析专家"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 17085
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37084 字符
+Token数量(预估): 17085
+payload大小: 58926 字节
+使用流式传输: true
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 404 Not Found
+[fetch] 响应非200: Not Found
+[fetch] 第2次尝试...
+[fetch] 响应状态: 404 Not Found
+[fetch] 响应非200: Not Found
+[fetch] 第3次尝试...
+[fetch] 响应状态: 404 Not Found
+[fetch] 响应非200: Not Found
+--- Gemini API 调用失败 --- Not Found
+Token预估数量: 15359
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 34232 字符
+Token数量(预估): 15359
+payload大小: 52362 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"好的，作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行详细分析。\n\n为了确保时间转换的准确性，我们假设本次舆情分析的报告生成日期为 **2024年7月23日**。所有相对时间（如“昨天”、“7天前”等）将以此为基准进行转换。\n\n---\n\n### 1. 逐条列出疑似负面评论\n\n以下是根据评论内容识别出的疑似负面评论：\n\n**笔记编号: 4**\n*   **用户昵称:** 海域函约\n    *   **评论时间:** 2024-06-28\n    *   **评论内容:** 这条视频怎么感觉疑似软广哈哈哈，不过确实他们家充电宝颜值都很高而且这两天各种平台直播我都刷到，甚至我前两天买的还要延迟发货了\n*   **用户昵称:** 巴啦啦能量\n    *   **评论时间:** 2024-06-29\n    *   **评论内容:** 因为3c被撤销了 召回型号产品\n*   **用户昵称:** xy\n    *   **评论时间:** 2024-06-27\n  
+[Token消耗统计] {
+  '输入Token': 15359,
+  '思考Token': 3664,
+  '输出Token': 4166,
+  '总Token': 23189,
+  '预估输入Token': 15359,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '心', "[心心眼R],[心心眼R]" is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 15359
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 34232 字符
+Token数量(预估): 15359
+payload大小: 52362 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"好的，作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行分析。\n\n**分析基准日期：2024年7月23日** （所有相对日期将以此为基准进行转换）\n\n---\n\n### 1. 疑似负面评论列表\n\n以下是逐条列出的疑似负面评论：\n\n*   **笔记编号:** 4\n    *   **用户昵称:** xy\n    *   **评论时间:** 2024-06-27\n    *   **评论内容:** 我那个有3c 可是今天又看到网上说我那个型号的3c被暂停了…\n*   **笔记编号:** 4\n    *   **用户昵称:** cakkii\n    *   **评论时间:** 2024-06-29\n    *   **评论内容:** 还好我去年买的小米口袋版的充电宝，有3c，还想买个图拉斯的，但是！！他竟然现在涨价了！\n*   **笔记编号:** 4\n    *   **用户昵称:** 🌥大云不吃香菇🍄\n    *   **评论时间:** 2024-07-
+[Token消耗统计] {
+  '输入Token': 15359,
+  '思考Token': 5269,
+  '输出Token': 2921,
+  '总Token': 23549,
+  '预估输入Token': 15359,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '好', "好的，作为品牌舆情分"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '好', "好的，作为品牌舆情分"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '好', "好的，作为品牌舆情分"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 15359
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 34232 字符
+Token数量(预估): 15359
+payload大小: 52362 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"好的，作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行深入分析。\n\n首先，我们需要确定一个“今天”的日期来转换相对时间。鉴于评论时间跨度集中在6月底到7月中旬，我们设定**报告日期为：2024年07月23日**。\n\n---\n\n### **小红书评论区舆情分析报告**\n\n**报告日期：2024年07月23日**\n\n---\n\n### 1. 疑似负面评论列表\n\n以下是根据关键词和语境识别出的疑似负面评论：\n\n| 笔记编号 | 用户昵称 | 评论时间 | 评论内容 |\n| :------- | :------- | :------- | :------- |\n| 4        | 海域函约 | 2024-06-28 | 这条视频怎么感觉疑似软广哈哈哈，不过确实他们家充电宝颜值都很高而且这两天各种平台直播我都刷到，甚至我前两天买的还要延迟发货了 |\n| 4        | 巴啦啦能量 | 2024-06-29 | 因为3c被撤销了 召回型号产品 |\n| 
+[Token消耗统计] {
+  '输入Token': 15359,
+  '思考Token': 2649,
+  '输出Token': 4749,
+  '总Token': 22757,
+  '预估输入Token': 15359,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '心', "[心心眼R],[心心眼R]" is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 15359
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 34232 字符
+Token数量(预估): 15359
+payload大小: 52362 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行深入分析。\n\n首先，我们确定本次分析的“今日”日期为 **2024年7月18日**，所有相对时间（如“昨天”、“7天前”）将以此为基准进行转换。\n\n---\n\n### 1. 逐条列出疑似负面评论\n\n以下是根据评论内容识别出的疑似负面评论：\n\n**笔记编号: 4**\n*   **用户昵称:** 海域函约\n    *   **评论时间:** 2024-06-28\n    *   **评论内容:** 这条视频怎么感觉疑似软广哈哈哈，不过确实他们家充电宝颜值都很高而且这两天各种平台直播我都刷到，甚至我前两天买的还要延迟发货了\n*   **用户昵称:** 巴啦啦能量\n    *   **评论时间:** 2024-06-29\n    *   **评论内容:** 因为3c被撤销了 召回型号产品\n*   **用户昵称:** xy\n    *   **评论时间:** 2024-06-27\n    *   **评论内容:** 
+[Token消耗统计] {
+  '输入Token': 15359,
+  '思考Token': 5248,
+  '输出Token': 2942,
+  '总Token': 23549,
+  '预估输入Token': 15359,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '心', "[心心眼R][心心眼R]" is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '心', "[心心眼R],[心心眼R]" is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 9
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 10 字符
+Token数量(预估): 9
+payload大小: 511 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"1+1等于2。"}],"role":"model"},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":9,"candidatesTokenCount":6,"totalTokenCount":51,"promptTokensDetails":[{"modality":"TEXT","tokenCount":9}],"thoughtsTokenCount":36},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"EeSBaJe2MIvgz7IPsNLImQE"}
+[Token消耗统计] {
+  '输入Token': 9,
+  '思考Token': 36,
+  '输出Token': 6,
+  '总Token': 51,
+  '预估输入Token': 9,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected non-whitespace character after JSON at position 1
+JSON解析第2次尝试失败: Unexpected non-whitespace character after JSON at position 1
+JSON解析第3次尝试失败: Unexpected non-whitespace character after JSON at position 1
+--- Gemini API 调用成功 (返回纯文本) ---
+Token预估数量: 15359
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 34232 字符
+Token数量(预估): 15359
+payload大小: 52362 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"好的，作为品牌舆情分析专家，我将对您提供的小红书评论区数据进行深入分析。\n\n**分析基准日期：2024年7月23日**\n\n---\n\n### 1. 疑似负面评论列表\n\n以下是逐条列出的疑似负面评论，并已将所有日期转换为标准格式：\n\n| 笔记编号             | 用户昵称           | 评论时间   | 评论内容                                                                                                                                                             |\n| :------------------- | :----------------- | :--------- | :-----------------------------------------------------------
+[Token消耗统计] {
+  '输入Token': 15359,
+  '思考Token': 4569,
+  '输出Token': 2073,
+  '总Token': 22001,
+  '预估输入Token': 15359,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+JSON解析第2次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+JSON解析第3次尝试失败: Unexpected token '呃', "[呃R]几乎没给它电用"... is not valid JSON
+--- Gemini API 调用成功 (返回纯文本) ---
+SyntaxError: Unexpected token '
+    at JSON.parse (<anonymous>)
+    at parse (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/body-parser/lib/types/json.js:92:19)
+    at /Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/body-parser/lib/read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    at invokeCallback (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/raw-body/index.js:238:16)
+    at done (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/raw-body/index.js:227:7)
+    at IncomingMessage.onEnd (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/raw-body/index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21), ..."{"prompt":$(jq -Rs ."... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parse (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/body-parser/lib/types/json.js:92:19)
+    at /Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/body-parser/lib/read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    at invokeCallback (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/raw-body/index.js:238:16)
+    at done (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/raw-body/index.js:227:7)
+    at IncomingMessage.onEnd (/Users/kli/Documents/localcode/策略工作流/workflow_2/node_modules/raw-body/index.js:287:7)
+    at IncomingMessage.emit (node:events:524:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+Token预估数量: 17137
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37140 字符
+Token数量(预估): 17137
+payload大小: 59024 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"Bu2BaJqNOYDUz7IP9sr16Aw"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"NO2BaLrGEZ-sz7IP5MmWoQY"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第3次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"ZO2BaNusObLBz7IPsJSloA8"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+--- Gemini API 调用失败 --- API返回的candidates格式无效
+Token预估数量: 17137
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37140 字符
+Token数量(预估): 17137
+payload大小: 59024 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"mO2BaIWyOq2fz7IP9-WuuAg"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+Token预估数量: 17137
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37140 字符
+Token数量(预估): 17137
+payload大小: 59024 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"yu2BaMWjHNasz7IPytnsIA"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第3次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"7e2BaNyoDdzmqtsPiqSh-Aw"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"--2BaNz6At2Fz7IPw-6W0Aw"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+--- Gemini API 调用失败 --- API返回的candidates格式无效
+Token预估数量: 17137
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37140 字符
+Token数量(预估): 17137
+payload大小: 59024 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"HO6BaPq8Ff6hz7IP0ZSo-Ao"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第3次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"Lu6BaMfPFaujqtsPzby1-Qw"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"Tu6BaJasF6znqtsP1sDPyAM"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+--- Gemini API 调用失败 --- API返回的candidates格式无效
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"YO6BaMK6Cuasz7IP5KzeoQI"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第3次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"ku6BaIe2GcvUz7IPgtCI8A8"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+--- Gemini API 调用失败 --- API返回的candidates格式无效
+Token预估数量: 17137
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37140 字符
+Token数量(预估): 17137
+payload大小: 59024 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"ku-BaIriCJe2mtkPhdLF-Aw"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"xO-BaNftONKhz7IPsefv6Qk"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第3次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"8e-BaPqQMsnzqtsPt62OuQM"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+--- Gemini API 调用失败 --- API返回的candidates格式无效
+Token预估数量: 17137
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37140 字符
+Token数量(预估): 17137
+payload大小: 59024 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"I_CBaNzzMvTUz7IPo56-iQo"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"UvCBaNbVLJOaqtsPp6zemA0"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第3次尝试...
+Token预估数量: 192
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 318 字符
+Token数量(预估): 192
+payload大小: 1172 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"hfCBaOT8I6CkmtkPx7iYwQ0"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+--- Gemini API 调用失败 --- API返回的candidates格式无效
+Token预估数量: 17137
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 37140 字符
+Token数量(预估): 17137
+payload大小: 59024 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"好的，作为品牌舆情分析专家，我将对您提供的JSON数据进行分析。\n\n**重要提示：** 您提供的JSON数据是空的。为了能够演示分析过程并输出您所需的内容，我将**模拟一份包含多种评论类型（包括正面、中性、负面）的小红书评论区数据**。所有分析将基于这份模拟数据进行。\n\n**假设当前日期为：2024年7月25日**\n\n---\n\n### **模拟小红书评论区数据**\n\n```json\n{\n  \"1001\": {\n    \"noteId\": \"note_A123\",\n    \"noteUrl\": \"https://www.xiaohongshu.com/explore/note_A123\",\n    \"comments\": [\n      { \"user\": \"美妆达人M\", \"time\": \"2天前\", \"content\": \"这个口红颜色太假了，涂上根本不是图片效果，踩雷！\" },\n      { \"user\":
+[Token消耗统计] {
+  '输入Token': 192,
+  '思考Token': 2743,
+  '输出Token': 3583,
+  '总Token': 6518,
+  '预估输入Token': 192,
+  '差异': 0
+}
+--- Gemini API 调用成功 (自动解析为JSON) ---
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"ufCBaNukDry9qtsP4-vzmQE"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第2次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"6PCBaILmHL6hz7IPhJvFyAw"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+[fetch] 第3次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}],"usageMetadata":{"promptTokenCount":17137,"totalTokenCount":25328,"cachedContentTokenCount":16362,"promptTokensDetails":[{"modality":"TEXT","tokenCount":17137}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":16362}],"thoughtsTokenCount":8191},"modelVersion":"models/gemini-2.5-flash-preview-05-20","responseId":"GvGBaJyUF4W9qtsPp4jggAE"}
+[Token消耗统计] {
+  '输入Token': 17137,
+  '思考Token': 8191,
+  '输出Token': 0,
+  '总Token': 25328,
+  '预估输入Token': 17137,
+  '差异': 0
+}
+[fetch] API返回的candidates格式无效: {"content":{"role":"model"},"finishReason":"MAX_TOKENS","index":0}
+--- Gemini API 调用失败 --- API返回的candidates格式无效
+Token预估数量: 148
+--- Gemini API 调用开始 ---
+请求模型: gemini-2.5-flash-preview-05-20
+prompt长度: 213 字符
+Token数量(预估): 148
+payload大小: 1049 字节
+使用流式传输: false
+生成配置: {"maxOutputTokens":8192,"temperature":0.7,"topP":0.8,"topK":40,"stopSequences":[],"thinkingConfig":{"thinkingBudget":-1}}
+结构化输出: false
+[fetch] 第1次尝试...
+[fetch] 响应状态: 200 OK
+[fetch] 响应数据: {"candidates":[{"content":{"parts":[{"text":"非常抱歉，您提供的JSON数据为空 `{}`。因此，我无法对具体的评论内容进行分析和识别。\n\n但我可以为您提供一个分析框架和示例，并假设如果数据存在，我将如何进行处理。请您提供具体的评论区JSON数据，我将按照您的要求进行详细分析。\n\n---\n\n**假设的评论区JSON数据示例（用于演示分析过程）：**\n\n为了演示，我将创建一个包含正面、中立和负面评论的模拟JSON数据。所有日期将转换为标准格式，假设今天的日期是 **2024年7月25日**。\n\n```json\n[\n  {\n    \"note_id\": \"1001\",\n    \"user_nickname\": \"美妆小达人\",\n    \"comment_time\": \"2天前\",\n    \"comment_content\": \"这个口红颜色好好看，爱了爱了！\"\n  },\n  {\n    \"note_id\": \"1002\",\n    \"user_nickname\":
+[Token消耗统计] {
+  '输入Token': 148,
+  '思考Token': 3288,
+  '输出Token': 4673,
+  '总Token': 8109,
+  '预估输入Token': 148,
+  '差异': 0
+}
+JSON解析第1次尝试失败: Unexpected non-whitespace character after JSON at position 2
+JSON解析第2次尝试失败: Unexpected non-whitespace character after JSON at position 2
+JSON解析第3次尝试失败: Unexpected non-whitespace character after JSON at position 2
+--- Gemini API 调用成功 (返回纯文本) ---
