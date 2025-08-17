@@ -1,0 +1,48 @@
+{
+  "projectType": "chrome-extension",
+  "description": "完整的本地代码项目：包含小红书评论采集器Chrome扩展、抖音自动评论工具、数据分析脚本等多个子项目",
+  "technologies": [
+    "javascript",
+    "chrome-extension",
+    "web-scraping",
+    "python",
+    "data-analysis",
+    "playwright",
+    "node.js"
+  ],
+  "codingRules": [
+    "chrome-extension-quality"
+  ],
+  "environment": {
+    "browser": "chrome",
+    "manifestVersion": 3,
+    "platform": "web",
+    "nodeVersion": "18+",
+    "pythonVersion": "3.12"
+  },
+  "documentation": {
+    "mainProjects": [
+      "chromemcp/xhs-comment-collector/",
+      "chromemcp/douyin-auto-comment/",
+      "playwright/",
+      "finiance copy/"
+    ],
+    "keyFiles": [
+      "chromemcp/xhs-comment-collector/background.js",
+      "chromemcp/xhs-comment-collector/popup.js",
+      "chromemcp/xhs-comment-collector/content.js",
+      "chromemcp/xhs-comment-collector/manifest.json"
+    ],
+    "dataFiles": [
+      "xiaohongshu_comments.json",
+      "全量人群.json"
+    ]
+  },
+  "projectStructure": {
+    "chromeExtensions": "chromemcp/",
+    "automation": "playwright/",
+    "dataAnalysis": "finiance copy/",
+    "workflows": "策略工作流/",
+    "scrapers": "爬虫/"
+  }
+}
