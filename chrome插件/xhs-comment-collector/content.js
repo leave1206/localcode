@@ -12,10 +12,50 @@ if (document.readyState === 'loading') {
   console.log('[content] DOM 已就绪');
 }
 
-// 1. 隐藏 webdriver 痕迹
+// 1. 增强反检测措施 - 隐藏自动化工具痕迹
 try {
-  Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-} catch(e) {}
+  // 隐藏webdriver标识
+  Object.defineProperty(navigator, 'webdriver', { 
+    get: () => undefined,
+    configurable: true
+  });
+  
+  // 隐藏Chrome自动化相关属性
+  delete navigator.__proto__.webdriver;
+  
+  // 伪装User Agent相关属性
+  Object.defineProperty(navigator, 'plugins', {
+    get: () => [1, 2, 3, 4, 5].map(() => 'plugin'),
+    configurable: true
+  });
+  
+  // 隐藏Chrome扩展检测特征
+  Object.defineProperty(window, 'chrome', {
+    get: () => ({
+      runtime: undefined,
+      // 保留必要的部分，隐藏扩展特征
+      app: {
+        isInstalled: false
+      }
+    }),
+    configurable: true
+  });
+  
+  // 重写console方法，避免检测脚本通过console判断
+  const originalLog = console.log;
+  console.log = function(...args) {
+    // 过滤掉可能暴露插件的日志
+    const logStr = args.join(' ');
+    if (!logStr.includes('chrome-extension') && !logStr.includes('[content]')) {
+      originalLog.apply(console, args);
+    }
+  };
+  
+  console.log('[反检测] 自动化工具痕迹隐藏完成');
+  
+} catch(e) {
+  console.warn('[反检测] 痕迹隐藏部分失败:', e);
+}
 
 const MAX_LOOP = 30; // 降低最大循环次数，减少滑动
 const MAX_COMMENTS = 100; // 达到100条评论即终止
@@ -28,154 +68,187 @@ function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// 新增：更自然的随机延迟函数
+function naturalDelay(baseMs = 1000, variance = 0.3) {
+  const variation = baseMs * variance * (Math.random() - 0.5) * 2;
+  return Math.max(200, baseMs + variation);
+}
+
+// 新增：模拟人类阅读时间
+function readingDelay(textLength = 50) {
+  // 🔧 优化：真人看评论区很快，大幅缩短等待时间
+  const baseReadingTime = Math.max(300, Math.min(textLength * 30, 1500)); // 30ms每字符，最多1.5秒
+  return naturalDelay(baseReadingTime, 0.2); // 进一步减少随机变化
+}
+
 function getNoteIdFromUrl() {
   const m = window.location.pathname.match(/\/(?:explore|discovery\/item)\/([0-9a-zA-Z]+)/);
   return m ? m[1] : '';
 }
 
-// 新增：获取所有评论详情（DOM当前可见）
+// ✅ 重新设计：基于结构层级区分正文和评论，避免data-v-xxx参数
 function getAllCommentsFromDom() {
   console.log('🔍 开始获取DOM中的评论...');
   
-  // 增强容错性：使用多种选择器策略
-  const selectors = [
-    // 第一优先级：标准选择器
-    '.comments-container .comment-item',
-    '.comments-container [data-testid="comment-item"]',
-    '.comment-item',
-    '[data-testid="comment-item"]',
+  try {
+    // ✅ 输入验证：检查DOM环境
+    if (!document || typeof document.querySelector !== 'function') {
+      console.error('❌ DOM环境不可用');
+      return [];
+    }
     
-    // 第二优先级：基于class的选择器
-    '.comment',
-    '.comment-wrapper',
-    '.comment-content',
+    // ✅ 使用稳定的选择器，通过结构层级区分评论和正文
+    // 评论区域特征：在.list-container内的.comment-item，且包含.right > .content结构
+    const commentContainer = document.querySelector('.list-container');
     
-    // 第三优先级：基于data属性的选择器
-    '[data-comment-id]',
-    '[data-id]',
-    
-    // 第四优先级：基于文本内容的智能检测
-    'div:contains("评论")',
-    'div:contains("回复")'
-  ];
+    if (!commentContainer) {
+      console.log('❌ 未找到评论容器(.list-container)，该笔记没有评论');
+      return [];
+    }
   
-  let commentNodes = [];
-  let usedSelector = '';
+  // ✅ 选择评论项：使用更稳定的选择器组合
+  // 评论特征：.comment-item 且包含 .right > .content > .note-text 的完整结构
+  const commentItems = commentContainer.querySelectorAll('.comment-item');
   
-  // 尝试各种选择器
-  for (const selector of selectors) {
-    // 跳过:contains选择器（在标准DOM中不支持）
-    if (selector.includes(':contains')) continue;
+  // ✅ 过滤出真正的评论：必须有完整的评论结构
+  const validCommentNodes = Array.from(commentItems).filter(node => {
+    // 评论必须有这些结构：头像区(.avatar) + 内容区(.right)
+    const hasAvatar = node.querySelector('.avatar');
+    const hasRight = node.querySelector('.right');
+    const hasContent = node.querySelector('.right .content');
+    const hasNoteText = node.querySelector('.right .content .note-text');
+    const hasAuthor = node.querySelector('.right .author-wrapper .author .name');
+    const hasInfo = node.querySelector('.right .info');
     
-    commentNodes = document.querySelectorAll(selector);
-    if (commentNodes.length > 0) {
-      usedSelector = selector;
-      console.log(`✅ 通过选择器找到评论元素: ${selector}, 数量: ${commentNodes.length}`);
-      break;
-    }
-  }
-  
-  if (commentNodes.length === 0) {
-    console.warn('❌ 未找到任何评论元素，尝试备用策略...');
-    
-    // 备用策略：查找包含评论相关文本的div
-    const allDivs = document.querySelectorAll('div');
-    commentNodes = Array.from(allDivs).filter(div => {
-      const text = div.innerText || '';
-      return text.includes('评论') || text.includes('回复') || text.includes('点赞');
-    });
-    console.log(`🔍 备用策略找到 ${commentNodes.length} 个可能的评论元素`);
-  }
-  
-  const results = Array.from(commentNodes).map((node, index) => {
-    // 评论内容
-    let content = '';
-    let user = '';
-    let time = '';
-    
-    // 内容提取：多种选择器策略
-    const contentSelectors = [
-      '.content', '[data-testid="comment-content"]', '.note-text',
-      '.comment-text', '.text', '.message', '.body'
-    ];
-    for (const selector of contentSelectors) {
-      const contentNode = node.querySelector(selector);
-      if (contentNode && contentNode.innerText.trim()) {
-        content = contentNode.innerText.trim();
-        break;
-      }
-    }
-    
-    // 用户昵称提取：多种选择器策略
-    const userSelectors = [
-      '.author .name', '.user .name', '.nickname',
-      '.username', '.user-name', '.author-name'
-    ];
-    for (const selector of userSelectors) {
-      const userNode = node.querySelector(selector);
-      if (userNode && userNode.innerText.trim()) {
-        user = userNode.innerText.trim();
-        break;
-      }
-    }
-    
-    // 时间提取：多种选择器策略
-    const timeSelectors = [
-      '.info .date span', '.time', '.date', '.timestamp',
-      '.comment-time', '.post-time', '.create-time'
-    ];
-    for (const selector of timeSelectors) {
-      const timeNode = node.querySelector(selector);
-      if (timeNode && timeNode.innerText.trim()) {
-        const rawTime = timeNode.innerText.trim();
-        time = normalizeCommentTime(rawTime); // 应用时间标准化
-        break;
-      }
-    }
-    
-    // 如果选择器都失败，尝试从整个节点的文本中提取
-    if (!content && !user && !time) {
-      const fullText = node.innerText || '';
-      const lines = fullText.split('\n').filter(line => line.trim());
-      if (lines.length >= 2) {
-        content = lines[0] || '';
-        user = lines[1] || '';
-        const rawTime = lines[2] || '';
-        time = normalizeCommentTime(rawTime); // 应用时间标准化
-      }
-    }
-    
-    console.log(`评论 ${index + 1}: 内容="${content}", 用户="${user}", 时间="${time}"`);
-    return { content, user, time };
+    // 评论的完整结构验证
+    return hasAvatar && hasRight && hasContent && hasNoteText && hasAuthor && hasInfo;
   });
   
-  const validResults = results.filter(c => c.content && c.content.length > 0);
-  console.log(`📊 总共找到 ${results.length} 个评论元素，有效评论 ${validResults.length} 个`);
+  if (validCommentNodes.length === 0) {
+    console.log('❌ 评论容器存在但没有找到有效评论，该笔记没有评论');
+    return [];
+  }
   
-  return validResults;
+  console.log(`✅ 找到 ${validCommentNodes.length} 个有效评论`);
+  
+  const results = [];
+  
+  Array.from(validCommentNodes).forEach((node, index) => {
+    try {
+      // ✅ 根据实际HTML结构提取数据，并检测结构变更
+      
+      // 1. 用户昵称：.right > .author-wrapper > .author > .name
+      let user = '';
+      const userNode = node.querySelector('.right .author-wrapper .author .name');
+      if (userNode) {
+        user = userNode.innerText.trim();
+      }
+      
+      // 2. 评论内容：.right > .content > .note-text > span
+      let content = '';
+      const contentNode = node.querySelector('.right .content .note-text span');
+      if (contentNode) {
+        content = contentNode.innerText.trim();
+      }
+      
+      // 3. 时间：.right > .info > .date > span (第一个span)
+      let time = '';
+      const timeNode = node.querySelector('.right .info .date span');
+      if (timeNode) {
+        const rawTime = timeNode.innerText.trim();
+        time = normalizeCommentTime(rawTime);
+      }
+      
+      // 4. 点赞数：.right > .info > .interactions > .like > .like-wrapper > .count
+      let likes = 0;
+      const likeNode = node.querySelector('.right .info .interactions .like .like-wrapper .count');
+      if (likeNode) {
+        const likeText = likeNode.innerText.trim();
+        // "赞" 表示0赞，数字表示具体赞数
+        if (likeText === '赞') {
+          likes = 0;
+        } else {
+          const likeNum = parseInt(likeText);
+          if (!isNaN(likeNum)) {
+            likes = likeNum;
+          }
+        }
+      }
+      
+      // ✅ 直接保存，因为精确的选择器已经保证了数据质量
+      console.log(`评论 ${index + 1}: 用户="${user}", 内容="${content}", 时间="${time}", 点赞=${likes}`);
+      results.push({ content, user, time, likes });
+      
+    } catch (error) {
+      console.error(`处理评论项 ${index + 1} 时出错:`, error);
+    }
+  });
+  
+    console.log(`📊 有效评论数量: ${results.length}`);
+    return results;
+    
+  } catch (error) {
+    console.error('❌ 获取评论时发生错误:', error);
+    return [];
+  }
 }
 
-// 新增：移动鼠标到元素的函数（按照原始代码逻辑）
+// 新增：更自然的鼠标移动函数
 async function moveMouseToElement(el) {
   if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const x = rect.left + rect.width / 2;
-  const y = rect.top + rect.height / 2;
-  el.dispatchEvent(new MouseEvent('mousemove', {clientX: x, clientY: y, bubbles: true}));
-  await sleep(randomBetween(200, 800));
+  
+  try {
+    const rect = el.getBoundingClientRect();
+    // 添加一些随机偏移，避免总是点击中心
+    const offsetX = randomBetween(-20, 20);
+    const offsetY = randomBetween(-20, 20);
+    const x = Math.max(0, rect.left + rect.width / 2 + offsetX);
+    const y = Math.max(0, rect.top + rect.height / 2 + offsetY);
+    
+    // 模拟更自然的鼠标事件序列
+    el.dispatchEvent(new MouseEvent('mouseenter', {clientX: x, clientY: y, bubbles: true}));
+    await sleep(naturalDelay(50, 0.3));
+    
+    el.dispatchEvent(new MouseEvent('mousemove', {clientX: x, clientY: y, bubbles: true}));
+    await sleep(naturalDelay(100, 0.5));
+    
+    // 偶尔触发mouseover
+    if (Math.random() < 0.3) {
+      el.dispatchEvent(new MouseEvent('mouseover', {clientX: x, clientY: y, bubbles: true}));
+      await sleep(naturalDelay(50, 0.4));
+    }
+    
+    await sleep(naturalDelay(200, 0.6));
+  } catch (error) {
+    console.warn('[鼠标移动] 移动失败:', error);
+  }
 }
 
-// 新增：偶尔模拟鼠标点击评论区的函数（按照原始代码逻辑）
+// 新增：更自然的随机交互函数
 async function maybeClickRandom() {
-  if (Math.random() < 0.12) {
+  try {
     const container = document.querySelector('.comments-container');
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      const x = rect.left + Math.random() * rect.width;
-      const y = rect.top + Math.random() * rect.height;
-      container.dispatchEvent(new MouseEvent('click', {clientX: x, clientY: y, bubbles: true}));
-      await sleep(randomBetween(200, 800));
-    }
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    // 避免点击边缘，选择中心区域
+    const margin = 20;
+    const x = rect.left + margin + Math.random() * (rect.width - 2 * margin);
+    const y = rect.top + margin + Math.random() * (rect.height - 2 * margin);
+    
+    // 模拟更自然的点击序列
+    container.dispatchEvent(new MouseEvent('mousedown', {clientX: x, clientY: y, bubbles: true}));
+    await sleep(naturalDelay(50, 0.3));
+    
+    container.dispatchEvent(new MouseEvent('mouseup', {clientX: x, clientY: y, bubbles: true}));
+    await sleep(naturalDelay(30, 0.3));
+    
+    container.dispatchEvent(new MouseEvent('click', {clientX: x, clientY: y, bubbles: true}));
+    await sleep(naturalDelay(300, 0.5));
+    
+    console.log('[随机交互] 模拟用户点击');
+  } catch (error) {
+    console.warn('[随机交互] 点击失败:', error);
   }
 }
 
@@ -188,6 +261,11 @@ async function isFirstCollection(noteId) {
     
     return new Promise((resolve) => {
       chrome.storage.local.get({ [key]: {} }, function(data) {
+        if (chrome.runtime.lastError) {
+          console.error('❌ 读取chrome.storage.local失败:', chrome.runtime.lastError);
+          resolve(false);
+          return;
+        }
         const allData = data[key] || {};
         console.log('获取到的存储数据:', allData);
         
@@ -221,6 +299,11 @@ async function getHistoricalComments(noteId) {
   return new Promise(async resolve => {
     const key = await getTodayKey();
     chrome.storage.local.get({ [key]: {} }, function(data) {
+      if (chrome.runtime.lastError) {
+        console.error('❌ 读取历史评论数据失败:', chrome.runtime.lastError);
+        resolve([]);
+        return;
+      }
       const allData = data[key] || {};
       
       for (const num in allData) {
@@ -282,110 +365,201 @@ async function getAllCommentsDetailFirstTime(noteId) {
   let lastProgressNotify = 0;
   
   try {
-    // 等待评论区加载
-    await sleep(2000);
+    // 🔧 优化：等待评论区加载，缩短等待时间
+    await sleep(1000); // 1秒足够大部分页面加载完成
     
-    // 获取初始评论 - 使用统一的评论获取函数
+    // ✅ 修复：使用精确的评论获取函数
+    console.log('[首次采集] 获取初始评论...');
     let initialComments = getAllCommentsFromDom();
-    if (initialComments && Array.isArray(initialComments)) {
-        // 首次采集：初始评论直接添加，无需去重（因为commentsDetail为空）
+    
+    if (initialComments && Array.isArray(initialComments) && initialComments.length > 0) {
+        // 首次采集：初始评论直接添加
         commentsDetail.push(...initialComments);
-        console.log('初始评论数:', initialComments.length);
+        console.log(`[首次采集] 初始评论数: ${initialComments.length}`);
     } else {
-        console.log('初始评论获取为空或失败，继续执行滚动逻辑...');
+        console.log('[首次采集] 未找到初始评论，该笔记可能没有评论或需要滚动加载');
+        
+        // ✅ 优化1：无评论页面快速退出
+        // 检查是否真的没有评论容器，如果没有则快速结束
+        const commentContainer = document.querySelector('.list-container');
+        if (!commentContainer) {
+          console.log('[优化] 无评论容器，快速结束采集');
+          await sleep(naturalDelay(500, 0.8)); // 0.5-2秒快速结束
+          return commentsDetail;
+        }
     }
     
     // 滚动获取更多评论 - 完全按照原始代码逻辑
     let lastCount = commentsDetail.length;
     let loop = 0;
     let noNewCount = 0;
-    const MAX_NO_NEW = 2;
+    const MAX_NO_NEW = 4; // 🔧 修复：增加到4次，确保充分滚动加载
+    
+    // ✅ 优化2：提前检测THE END，如果已经在页面底部则跳过循环
+    if (checkForTheEnd && checkForTheEnd()) {
+      console.log('[优化] 提前检测到THE END，评论已完整，跳过滚动循环');
+      return commentsDetail;
+    }
+    
+    // ✅ 优化3：智能评估评论数量，避免不必要的循环
+    let totalComments = getCommentsTotal();
+    
+    // 🔧 修复：如果首次获取总数为0，等待重试确保页面完全加载
+    if (totalComments === 0) {
+        console.log(`[首次采集] 首次获取评论总数为0，等待2秒后重试...`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 🔧 优化：缩短重试时间
+        
+        totalComments = getCommentsTotal();
+        console.log(`[首次采集] 重试后评论总数: ${totalComments}`);
+        
+        if (totalComments === 0) {
+            const errorMsg = `[首次采集] 重试后仍然没有找到评论总数元素，页面可能异常或结构发生变化`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+    }
+    
+    const needFullLoop = totalComments > 10; // 🔧 修复：评论数>10时才进行完整循环，现在totalComments不会为0
+    
+    if (!needFullLoop && commentsDetail.length >= totalComments) {
+      console.log(`[优化] 评论数≤10且已获取完整(${commentsDetail.length}/${totalComments})，执行快速验证`);
+      // 快速验证一次即可
+      await sleep(naturalDelay(1000, 0.4));
+      const verifyComments = getAllCommentsFromDom();
+      for (const comment of verifyComments) {
+        if (!commentsDetail.some(existing => 
+          existing.content === comment.content && 
+          existing.user === comment.user && 
+          existing.time === comment.time
+        )) {
+          commentsDetail.push(comment);
+        }
+      }
+      console.log(`[优化] 快速验证完成，最终评论数: ${commentsDetail.length}`);
+      return commentsDetail;
+    }
     
     try {
       while (loop < 30) { // MAX_LOOP = 30
         console.log(`准备第 ${loop + 1} 次滚动`);
         
-        // 1. window整体向下滚动，距离和等待时间随机
-        window.scrollTo(0, document.body.scrollHeight - randomBetween(0, 200));
-        await sleep(randomBetween(1200, 3500));
-
-        // 2. 评论区容器滑动，距离和等待时间随机
-        const container = document.querySelector('.comments-container');
-        if (container) {
-          if (Math.random() < 0.2) {
-            container.scrollTop -= randomBetween(50, 200);
-            await sleep(randomBetween(800, 2000));
-          }
-          container.scrollTop += randomBetween(100, 400);
-          await sleep(randomBetween(1200, 3500));
-          if (Math.random() < 0.3) await moveMouseToElement(container);
-        }
-
-        // 3. 多次让最后一条评论 scrollIntoView，带停顿
-        const commentNodes = document.querySelectorAll('.comments-container .comment-item, .comments-container [data-testid="comment-item"]');
-        for (let i = 0; i < randomBetween(1, 2); i++) {
-          if (commentNodes.length > 0) {
-            const last = commentNodes[commentNodes.length - 1];
-            last.scrollIntoView({behavior: 'smooth', block: 'end'});
-            await sleep(randomBetween(800, 2000));
-            if (Math.random() < 0.2) await moveMouseToElement(last);
-          }
-        }
-
-        // 4. 偶尔模拟鼠标点击评论区
-        await maybeClickRandom();
-
-        // 5. 检查是否出现THE END
+        // ✅ 优化4：提前检测THE END，优先级最高
         if (checkForTheEnd && checkForTheEnd()) {
           console.log('[首次采集] 检测到THE END，结束滚动');
           break;
         }
         
-        // 6. 判断评论数是否增加或达到上限
+        // 1. 更自然的页面滚动 - 模拟人类阅读行为
+        const currentScroll = window.pageYOffset;
+        const targetScroll = Math.min(document.body.scrollHeight - randomBetween(100, 300), currentScroll + randomBetween(300, 800));
+        
+        // 分段滚动，更像人类行为
+        const scrollSteps = randomBetween(2, 4);
+        for (let step = 0; step < scrollSteps; step++) {
+          const stepScroll = currentScroll + (targetScroll - currentScroll) * (step + 1) / scrollSteps;
+          window.scrollTo({ top: stepScroll, behavior: 'smooth' });
+          await sleep(naturalDelay(300, 0.5)); // 更自然的延迟
+        }
+        
+        // 模拟阅读停顿
+        await sleep(readingDelay(randomBetween(30, 80)));
+
+        // 2. 评论区容器滑动 - 降低频率，增加自然性
+        const container = document.querySelector('.comments-container');
+        if (container && Math.random() < 0.7) { // 70%概率操作评论区
+          // 偶尔向上回看
+          if (Math.random() < 0.15) {
+            container.scrollTop -= randomBetween(30, 150);
+            await sleep(naturalDelay(600, 0.4));
+          }
+          
+          // 主要向下滚动
+          const scrollAmount = randomBetween(80, 250);
+          container.scrollTop += scrollAmount;
+          await sleep(naturalDelay(1000, 0.6));
+          
+          // 偶尔移动鼠标到容器
+          if (Math.random() < 0.25) await moveMouseToElement(container);
+        }
+
+        // 3. 智能定位到最后评论 - 减少频率
+        const commentNodes = document.querySelectorAll('.comments-container .comment-item, .comments-container [data-testid="comment-item"]');
+        if (commentNodes.length > 0 && Math.random() < 0.6) {
+          const last = commentNodes[commentNodes.length - 1];
+          last.scrollIntoView({behavior: 'smooth', block: 'end'});
+          await sleep(naturalDelay(800, 0.4));
+          
+          // 很少移动鼠标到最后一条评论
+          if (Math.random() < 0.1) await moveMouseToElement(last);
+        }
+
+        // 4. 降低随机点击频率
+        if (Math.random() < 0.08) { // 从0.12降低到0.08
+          await maybeClickRandom();
+        }
+        
+        // 5. ✅ 修复：判断评论数是否增加或达到上限
         const currentCommentsDetail = getAllCommentsFromDom();
-        if (currentCommentsDetail.length >= 100) { // MAX_COMMENTS = 100
-          console.error('已采集到100条评论，任务终止');
+        
+        // 合并新评论到结果中（去重）
+        for (const comment of currentCommentsDetail) {
+          if (!commentsDetail.some(existing => 
+            existing.content === comment.content && 
+            existing.user === comment.user && 
+            existing.time === comment.time
+          )) {
+            commentsDetail.push(comment);
+          }
+        }
+        
+        if (commentsDetail.length >= 100) { // MAX_COMMENTS = 100
+          console.log(`[首次采集] 已采集到100条评论，任务终止`);
           break;
         }
         
-        if (currentCommentsDetail.length === lastCount) {
+        if (commentsDetail.length === lastCount) {
           noNewCount++;
-          if (noNewCount >= MAX_NO_NEW) {
-            console.error('连续两次无新评论，判定采集完毕，停止采集');
-            break;
+          console.log(`[首次采集] 第${noNewCount}次无新评论，当前${commentsDetail.length}/${totalComments}条`);
+          
+          // 🔧 修复：严格按照设计原则 - 只有检测到THE END才允许提前结束
+          // 否则必须采集到100条评论才能结束，连续无新评论不应该成为终止条件
+          console.log(`[首次采集] 连续${noNewCount}次无新评论，但未检测到THE END，继续滚动尝试获取更多评论`);
+          
+          // 只在连续很多次无新评论时给出警告，但不终止
+          if (noNewCount >= 10) {
+            console.warn(`[首次采集] 已连续${noNewCount}次无新评论，可能页面加载有问题或评论已全部加载`);
           }
         } else {
           noNewCount = 0;
         }
         
-        lastCount = currentCommentsDetail.length;
+        lastCount = commentsDetail.length;
         loop++;
         
-        // 循环结束后的等待时间
-        if (Math.random() < 0.15) {
-          await sleep(randomBetween(4000, 9000));
+        // ✅ 优化5：循环结束后的等待时间 - 大幅缩短，更贴近真人速度
+        const waitTime = commentsDetail.length <= 10 ? 
+          naturalDelay(1200, 0.3) : // 🔧 优化：评论≤10：1.2-1.6秒，真人速度
+          naturalDelay(1800, 0.4);   // 🔧 优化：评论>10：1.8-2.5秒，稍慢但仍快速
+          
+        const pauseType = Math.random();
+        if (pauseType < 0.05) {
+          // 5%概率稍长停顿（偶尔仔细看）
+          await sleep(commentsDetail.length <= 10 ? naturalDelay(2000, 0.3) : naturalDelay(3000, 0.3));
+          console.log('[自然化] 模拟仔细阅读停顿');
+        } else if (pauseType < 0.15) {
+          // 10%概率中等停顿（稍微思考）
+          await sleep(commentsDetail.length <= 10 ? naturalDelay(1500, 0.3) : naturalDelay(2200, 0.3));
+          console.log('[自然化] 模拟思考停顿');
         } else {
-          await sleep(randomBetween(2000, 5000));
+          // 85%概率快速滚动（真人看评论很快）
+          await sleep(waitTime);
         }
       }
     } catch (error) {
       console.error('滚动过程中出错:', error);
     }
     
-    // 滚动完成后，获取最终的所有评论
-    const finalCommentsDetail = getAllCommentsFromDom();
-    console.log('滚动完成，最终评论数:', finalCommentsDetail.length);
-    
-    // 将最终评论添加到结果中（去重）
-    for (const comment of finalCommentsDetail) {
-      if (!commentsDetail.some(existing => 
-        existing.content === comment.content && 
-        existing.user === comment.user && 
-        existing.time === comment.time
-      )) {
-        commentsDetail.push(comment);
-      }
-    }
+    // ✅ 修复：滚动完成，评论已在过程中实时合并
     
     console.log('首次采集完成，总评论数:', commentsDetail.length);
     return commentsDetail;
@@ -416,16 +590,17 @@ async function getAllCommentsDetailIncremental(noteId) {
     
     // 如果当前评论总数为0，可能是页面未完全加载，等待后重试
     if (currentCommentsTotal === 0) {
-        console.log(`[增量采集] 当前评论总数为0，等待5秒后重试...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log(`[增量采集] 当前评论总数为0，等待3秒后重试...`);
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 🔧 优化：缩短重试时间
         
         currentCommentsTotal = getCommentsTotal();
         console.log(`[增量采集] 重试后评论总数: ${currentCommentsTotal}`);
         
-        // 如果重试后仍为0，转为首次采集
+        // 如果重试后仍为0，说明页面异常，报错终止
         if (currentCommentsTotal === 0) {
-            console.log(`[增量采集] 重试后评论总数仍为0，转为首次采集`);
-            return getAllCommentsDetailFirstTime(noteId);
+            const errorMsg = `[增量采集] 重试后仍然没有找到评论总数元素，页面可能异常或结构发生变化`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
     }
     
@@ -446,15 +621,27 @@ async function getAllCommentsDetailIncremental(noteId) {
     // 关键逻辑2：内容重复校验和增量处理 - 参考原始代码的滚动逻辑
     console.log(`[增量采集] 开始增量滚动，参考原始代码逻辑`);
     
+    // ✅ 优化：增量采集也提前检测THE END
+    if (checkForTheEnd()) {
+      console.log('[增量采集] 提前检测到THE END，评论已完整，跳过滚动循环');
+      return [];
+    }
+    
     let lastCount = 0;
     let loop = 0;
     let noNewCount = 0;
-    const MAX_NO_NEW = 2;
+    const MAX_NO_NEW = 4; // 🔧 修复：增量采集也增加到4次，确保充分滚动加载
     const allNewComments = [];
     
     try {
       while (loop < 30) { // MAX_LOOP = 30，但增量采集可以更保守
         console.log(`[增量采集] 准备第 ${loop + 1} 次滚动`);
+        
+        // ✅ 优化：增量采集也要提前检测THE END
+        if (checkForTheEnd()) {
+            console.log(`[增量采集] 检测到THE END，评论已到底，直接结束该笔记的采集`);
+            break;
+        }
         
         // 1. window整体向下滚动，距离和等待时间随机
         window.scrollTo(0, document.body.scrollHeight - randomBetween(0, 200));
@@ -501,16 +688,12 @@ async function getAllCommentsDetailIncremental(noteId) {
             noNewCount++;
             console.log(`[增量采集] 连续 ${noNewCount} 次无新评论`);
             
+            // 🔧 修复：增量采集保持原逻辑，因为增量采集的目标是找新增评论
+            // 如果连续多次没有新增评论，可以合理认为增量采集完成
             if (noNewCount >= MAX_NO_NEW) {
-                console.log(`[增量采集] 连续两次无新评论，判定增量采集完毕，停止采集`);
+                console.log(`[增量采集] 连续${MAX_NO_NEW}次无新评论，判定增量采集完毕，停止采集`);
                 break;
             }
-        }
-        
-        // 检查是否出现THE END
-        if (checkForTheEnd()) {
-            console.log(`[增量采集] 检测到THE END，评论已到底，直接结束该笔记的采集`);
-            break;
         }
         
         // 检查是否达到最大滚动次数（增量采集更保守）
@@ -521,11 +704,22 @@ async function getAllCommentsDetailIncremental(noteId) {
         
         loop++;
         
-        // 循环结束后的等待时间
-        if (Math.random() < 0.15) {
-          await sleep(randomBetween(4000, 9000));
+        // ✅ 优化：增量采集也根据评论数量动态调整等待时间
+        const currentCommentCount = allNewComments.length + (historicalData.comments?.length || 0);
+        if (currentCommentCount <= 10) {
+          // 评论数少，缩短等待时间
+          if (Math.random() < 0.15) {
+            await sleep(randomBetween(2000, 4000)); // 缩短长停顿
+          } else {
+            await sleep(randomBetween(1000, 2500)); // 缩短正常停顿
+          }
         } else {
-          await sleep(randomBetween(2000, 5000));
+          // 评论数多，保持原有等待时间
+          if (Math.random() < 0.15) {
+            await sleep(randomBetween(4000, 9000));
+          } else {
+            await sleep(randomBetween(2000, 5000));
+          }
         }
       }
     } catch (error) {
@@ -693,75 +887,8 @@ function isTheEndText(text) {
   return false;
 }
 
-// 新增：从页面获取评论的辅助函数
-function getCommentsFromPage() {
-  try {
-    const commentNodes = document.querySelectorAll('.comments-container .comment-item, .comments-container [data-testid="comment-item"]');
-    
-    if (commentNodes.length === 0) {
-      console.log('[获取评论] 未找到评论节点，可能页面结构变化');
-      return { success: true, comments: [], error: null }; // 返回结构化结果
-    }
-    
-    console.log(`[获取评论] 找到 ${commentNodes.length} 个评论节点`);
-    
-    const comments = Array.from(commentNodes).map((node, index) => {
-      try {
-        // 评论内容
-        let content = '';
-        let user = '';
-        let time = '';
-        let likes = 0;
-        let comment_id = `comment_${index}`; // 默认评论ID
-        
-        // 内容
-        const contentNode = node.querySelector('.content, [data-testid="comment-content"], .note-text');
-        if (contentNode) content = contentNode.innerText.trim();
-        
-        // 用户昵称
-        const userNode = node.querySelector('.author .name');
-        if (userNode) user = userNode.innerText.trim();
-        
-        // 时间 - 新增时间统一化处理
-        const timeNode = node.querySelector('.info .date span');
-        if (timeNode) {
-          const rawTime = timeNode.innerText.trim();
-          time = normalizeCommentTime(rawTime);
-        }
-        
-        // 尝试获取评论ID
-        const commentIdNode = node.querySelector('[data-comment-id], [data-id]');
-        if (commentIdNode) {
-          comment_id = commentIdNode.getAttribute('data-comment-id') || commentIdNode.getAttribute('data-id') || comment_id;
-        }
-        
-        // 优化：使用更高效的选择器获取点赞数
-        const likeNode = node.querySelector('.like-wrapper .count') || 
-                        node.querySelector('.like .count') || 
-                        node.querySelector('[class*="like"] .count');
-        
-        if (likeNode) {
-          const likeText = likeNode.innerText.trim();
-          const likeNum = parseInt(likeText);
-          if (!isNaN(likeNum)) {
-            likes = likeNum;
-          }
-        }
-        
-        return { comment_id, content, user, time, likes };
-      } catch (commentError) {
-        console.warn(`[获取评论] 处理第 ${index} 个评论节点时出错:`, commentError);
-        return null;
-      }
-    }).filter(c => c && c.content); // 过滤掉无效评论
-    
-    return { success: true, comments, error: null };
-    
-  } catch (error) {
-    console.error('[获取评论] 获取评论时发生错误:', error);
-    return { success: false, comments: [], error: error.message };
-  }
-}
+// ✅ 删除：移除可能采集正文的备用函数
+// 这个函数已被getAllCommentsFromDom()替代，使用精确的HTML结构选择器
 
 // 时间统一化处理函数
 function normalizeCommentTime(timeStr) {
@@ -903,7 +1030,11 @@ function saveNoteCommentsToLocal(noteId, noteData) {
       noteUrl = arguments[1] || window.location.href; // 第二个参数是noteUrl
       noteTitle = getNoteTitle() || '未知标题';
       noteAuthor = getNoteAuthor() || '未知作者';
-      commentsTotal = getCommentsTotal() || 0;
+      commentsTotal = getCommentsTotal();
+      if (commentsTotal === 0) {
+        console.error('saveNoteCommentsToLocal: 无法获取评论总数，数据保存失败');
+        throw new Error('无法获取评论总数，数据保存失败');
+      }
       collectionTime = new Date().toISOString().split('T')[0];
     } else if (noteData && typeof noteData === 'object') {
       // 新格式：saveNoteCommentsToLocal(noteId, noteData)
@@ -911,7 +1042,11 @@ function saveNoteCommentsToLocal(noteId, noteData) {
       noteUrl = noteData.note_url || window.location.href;
       noteTitle = noteData.note_title || getNoteTitle() || '未知标题';
       noteAuthor = noteData.note_author || getNoteAuthor() || '未知作者';
-      commentsTotal = noteData.comments_total || getCommentsTotal() || 0;
+      commentsTotal = getCommentsTotal();
+      if (commentsTotal === 0) {
+        console.error('saveNoteCommentsToLocal: 无法获取评论总数，数据保存失败');
+        throw new Error('无法获取评论总数，数据保存失败');
+      } // 🔧 修复：始终使用页面显示的真实总数
       collectionTime = noteData.collection_time || new Date().toISOString().split('T')[0];
     } else {
       // 无效的noteData，使用默认值
@@ -920,7 +1055,11 @@ function saveNoteCommentsToLocal(noteId, noteData) {
       noteUrl = window.location.href;
       noteTitle = getNoteTitle() || '未知标题';
       noteAuthor = getNoteAuthor() || '未知作者';
-      commentsTotal = getCommentsTotal() || 0;
+      commentsTotal = getCommentsTotal();
+      if (commentsTotal === 0) {
+        console.error('saveNoteCommentsToLocal: 无法获取评论总数，数据保存失败');
+        throw new Error('无法获取评论总数，数据保存失败');
+      }
       collectionTime = new Date().toISOString().split('T')[0];
     }
     
@@ -936,7 +1075,12 @@ function saveNoteCommentsToLocal(noteId, noteData) {
     
     getTodayKey().then(key => {
       chrome.storage.local.get({ [key]: {} }, function(data) {
-      let allData = data[key] || {};
+        if (chrome.runtime.lastError) {
+          console.error('❌ 保存评论时读取存储失败:', chrome.runtime.lastError);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        let allData = data[key] || {};
       
       // 查找当前noteId是否已存在
       let foundNum = null;
@@ -1000,6 +1144,11 @@ function saveNoteCommentsToLocal(noteId, noteData) {
       };
       
       chrome.storage.local.set({ [key]: allData }, function() {
+        if (chrome.runtime.lastError) {
+          console.error('❌ 保存到chrome.storage.local失败:', chrome.runtime.lastError);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
         console.log('已保存评论到chrome.storage.local', key, allData);
         resolve();
       });
@@ -1046,6 +1195,10 @@ function stopHeartbeat() {
 
 // 强制加载所有评论的主函数 - 修复后的逻辑
 async function forceLoadAllComments() {
+  // 新增：模拟用户进入页面的自然延迟
+  console.log('[自然化] 模拟页面加载后的用户行为延迟...');
+  await sleep(naturalDelay(1000, 0.4)); // 🔧 优化：1-1.4秒快速开始
+  
   notifyCollectingStatus('collecting');
   // 启动心跳机制，配合后台monitorHb
   try { startHeartbeat(); } catch(e) {}
@@ -1062,26 +1215,54 @@ async function forceLoadAllComments() {
       return;
     }
     
+    // 新增：模拟用户查看页面内容的行为
+    console.log('[自然化] 模拟用户浏览页面内容...');
+    
+    // 🔧 优化：快速浏览，直接滚动到评论区附近
+    console.log('[自然化] 快速定位到评论区...');
+    
+    // 快速滚动到页面中下部（评论区通常在这里）
+    const targetPosition = Math.max(window.innerHeight * 0.6, document.body.scrollHeight * 0.4);
+    window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+    await sleep(naturalDelay(800, 0.3)); // 0.8-1.0秒
+    
     // 调用采集逻辑获取评论数据
     console.log('开始采集评论数据...');
     const commentsDetail = await getAllCommentsDetail(noteId);
     
     console.log('采集完成，获取到评论数:', commentsDetail.length);
     
-    // 保存数据到本地存储
-    if (commentsDetail && commentsDetail.length > 0) {
-      const noteUrl = window.location.href;
-      await saveNoteCommentsToLocal(noteId, { 
-        noteUrl, 
-        note_title: getNoteTitle(), 
-        note_author: getNoteAuthor(), 
-        comments: commentsDetail,
-        comments_total: getCommentsTotal(),
-        collection_time: new Date().toISOString().split('T')[0]
-      });
-      console.log('评论数据保存成功');
-    } else {
-      console.log('未获取到评论数据，跳过保存');
+    // ✅ 保存数据到本地存储：无论是否有评论都保存正文内容
+    const noteUrl = window.location.href;
+    const noteData = { 
+      noteUrl, 
+      note_title: getNoteTitle(), 
+      note_author: getNoteAuthor(), 
+      note_content: getNoteContent(), // ✅ 添加正文内容
+      comments: commentsDetail || [],
+      comments_total: (() => {
+        const total = getCommentsTotal();
+        if (total === 0) {
+          console.error('forceLoadAllComments: 无法获取评论总数');
+          throw new Error('无法获取评论总数');
+        }
+        return total;
+      })(), // 🔧 修复：使用页面显示的真实总数，确保不为0
+      collection_time: new Date().toISOString().split('T')[0]
+    };
+    
+    // ✅ 修复：为异步操作添加错误处理
+    try {
+      await saveNoteCommentsToLocal(noteId, noteData);
+      
+      if (commentsDetail && commentsDetail.length > 0) {
+        console.log(`✅ 采集完成：正文内容 + ${commentsDetail.length}条评论 已保存`);
+      } else {
+        console.log('✅ 采集完成：正文内容已保存（该笔记无评论）');
+      }
+    } catch (saveError) {
+      console.error('❌ 保存数据失败:', saveError);
+      // 即使保存失败，也要继续执行后续流程
     }
     
     // 通知采集完成并关闭页面
@@ -1092,20 +1273,31 @@ async function forceLoadAllComments() {
     
   } catch (e) {
     console.error('采集异常:', e);
-    // 异常时也尝试保存已采集到的评论
+    // ✅ 修复：异常时也尝试保存已采集到的评论，使用精确采集函数
     try {
       const noteId = getNoteIdFromUrl();
       const noteUrl = window.location.href;
-      const commentsDetail = getAllCommentsFromDom();
+      const commentsDetail = getAllCommentsFromDom(); // ✅ 使用精确的评论采集函数
       if (commentsDetail && commentsDetail.length > 0) {
+        console.log(`[异常恢复] 保存已采集的 ${commentsDetail.length} 条评论`);
         await saveNoteCommentsToLocal(noteId, { 
           noteUrl, 
           note_title: getNoteTitle(), 
           note_author: getNoteAuthor(), 
+          note_content: getNoteContent(), // ✅ 添加正文内容
           comments: commentsDetail,
-          comments_total: getCommentsTotal(),
+          comments_total: (() => {
+            const total = getCommentsTotal();
+            if (total === 0) {
+              console.error('异常恢复: 无法获取评论总数');
+              throw new Error('无法获取评论总数');
+            }
+            return total;
+          })(),
           collection_time: new Date().toISOString().split('T')[0]
         });
+      } else {
+        console.log('[异常恢复] 没有有效评论可保存');
       }
     } catch (saveError) {
       console.error('保存异常数据时出错:', saveError);
@@ -1127,11 +1319,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const m = window.location.pathname.match(/\/(?:explore|discovery\/item)\/([0-9a-zA-Z]+)/);
     if (m && m[1]) {
       allowCollect = true;
-      setTimeout(forceLoadAllComments, randomBetween(2000, 5000));
+      // 更自然的延迟启动
+      const startDelay = naturalDelay(3000, 0.4); // 3-5秒自然延迟
+      console.log(`[自然化] 将在 ${Math.round(startDelay)}ms 后开始采集`);
+      setTimeout(forceLoadAllComments, startDelay);
       sendResponse({ ok: true });
       return true;
     } else {
       allowCollect = false;
+      console.log('[页面检查] 非笔记详情页，跳过采集');
       // 非笔记详情页不采集
     }
   }
@@ -1148,167 +1344,59 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // 2. 采集逻辑全部基于页面真实渲染内容，无直接接口批量请求行为。
 // 3. 如需更低风控风险，建议分批采集、间隔更长时间、避免频繁刷新页面。 
 
-// 新增：获取评论总数的函数
+// 🔧 修复：精确获取评论总数函数（按用户要求只从class="total"获取）
 function getCommentsTotal() {
   try {
     console.log('🔍 开始查找评论总数元素...');
     
-    // 增强容错性：减少对特定data-v属性的依赖
-    const selectors = [
-      // 第一优先级：您指定的确切选择器（可能失效）
-      '[data-v-4a19279a] .total',
-      '[data-v-46299452] .count',
-      
-      // 第二优先级：基于class的通用选择器（更稳定）
-      '.total',
-      '.count',
-      '.comment-total',
-      '.comment-count',
-      '.total-count',
-      
-      // 第三优先级：包含关键词的选择器（容错性最强）
-      '[class*="total"]',
-      '[class*="count"]',
-      '[class*="comment-total"]',
-      '[class*="comment-count"]',
-      '[class*="total-count"]',
-      
-      // 第四优先级：基于文本内容的智能检测（最稳定）
-      'div:contains("共")',
-      'span:contains("共")',
-      'div:contains("条评论")',
-      'span:contains("条评论")'
-    ];
+    // 🎯 按用户要求：精确只从class="total"获取，不要备用复杂逻辑
+    const totalElement = document.querySelector('.total');
     
-    let totalNode = null;
-    let usedSelector = '';
-    
-    // 首先尝试基于选择器的查找
-    for (const selector of selectors) {
-      // 跳过:contains选择器（在标准DOM中不支持）
-      if (selector.includes(':contains')) continue;
-      
-      totalNode = document.querySelector(selector);
-      if (totalNode) {
-        usedSelector = selector;
-        console.log(`✅ 通过选择器找到评论总数元素: ${selector}`);
-        break;
-      }
-    }
-    
-    // 如果选择器查找失败，使用智能文本检测
-    if (!totalNode) {
-      console.log('🔍 选择器查找失败，使用智能文本检测...');
-      totalNode = findElementByTextContent();
-      if (totalNode) {
-        usedSelector = '智能文本检测';
-        console.log('✅ 通过智能文本检测找到评论总数元素');
-      }
-    }
-    
-    if (totalNode) {
-      const totalText = totalNode.innerText.trim();
+    if (totalElement) {
+      const totalText = totalElement.innerText.trim();
       console.log('评论总数元素文本内容:', totalText);
-      console.log('使用的检测方法:', usedSelector);
+      console.log('使用选择器: .total');
       
-      // 检查是否是纯数字格式（如 [data-v-46299452] .count 元素）
-      if (usedSelector.includes('count') || /^\d+$/.test(totalText)) {
-        const total = parseInt(totalText);
-        if (!isNaN(total)) {
-          console.log('✅ 从纯数字元素成功解析评论总数:', total);
-          return total;
-        }
-      }
-      
-      // 优先匹配"共 X 条评论"格式
+      // 精确匹配"共 X 条评论"格式，提取数字
       const match = totalText.match(/共\s*(\d+)\s*条评论/);
       if (match) {
         const total = parseInt(match[1]);
-        console.log('✅ 成功解析评论总数:', total);
+        console.log('✅ 从class="total"成功解析评论总数:', total);
         return total;
       } else {
-        console.log('⚠️ 文本内容不匹配"共 X 条评论"格式，尝试其他匹配...');
-        // 尝试其他可能的格式
-        const altMatch = totalText.match(/(\d+)/);
-        if (altMatch) {
-          const total = parseInt(altMatch[1]);
-          console.log('✅ 使用备用格式解析评论总数:', total);
-          return total;
-        }
+        console.warn('⚠️ class="total"元素文本格式不匹配"共 X 条评论":', totalText);
+        return 0;
       }
+    } else {
+      console.warn('❌ 未找到class="total"元素');
+      return 0;
     }
-    
-    // Fallback: If totalNode not found, try to infer from comment count
-    console.log('🔍 未找到评论总数元素，尝试通过评论容器数量推断...');
-    const commentNodes = document.querySelectorAll('.comments-container .comment-item, .comments-container [data-testid="comment-item"]');
-    console.log('找到的评论容器数量:', commentNodes.length);
-    
-    if (commentNodes.length > 0) {
-      console.log('📊 通过评论容器数量推断当前可见评论数:', commentNodes.length);
-      console.log('⚠️  注意：这只是当前可见的评论数，不是总评论数');
-      // 返回当前可见评论数，但明确说明这不是总数
-      return commentNodes.length;
-    }
-    
-    console.warn('❌ 无法获取评论总数，返回0');
-    return 0;
   } catch (error) {
     console.error('❌ 获取评论总数时发生错误:', error);
     return 0;
   }
 }
 
-// 新增：基于文本内容的智能元素查找
-function findElementByTextContent() {
-  try {
-    console.log('🔍 开始智能文本检测...');
-    
-    // 查找所有可能包含评论总数的元素
-    const allElements = document.querySelectorAll('div, span, p, strong, b');
-    const targetPatterns = [
-      /共\s*\d+\s*条评论/,      // "共 X 条评论"
-      /\d+\s*条评论/,           // "X 条评论"
-      /共\s*\d+/,               // "共 X"
-      /\d+\s*条/                 // "X 条"
-    ];
-    
-    for (const element of allElements) {
-      const text = element.innerText.trim();
-      if (text.length > 0 && text.length < 50) { // 限制文本长度，避免误匹配
-        for (const pattern of targetPatterns) {
-          if (pattern.test(text)) {
-            console.log(`✅ 智能检测到可能的评论总数元素: "${text}"`);
-            return element;
-          }
-        }
-      }
-    }
-    
-    console.log('❌ 智能文本检测未找到匹配元素');
-    return null;
-  } catch (error) {
-    console.error('❌ 智能文本检测时发生错误:', error);
-    return null;
-  }
-}
 
-// 新增：获取当前页面评论的辅助函数
+
+// ✅ 修复：使用精确的评论采集函数
 function getCurrentPageComments() {
-    const result = getCommentsFromPage();
+    console.log('[获取当前页面评论] 开始获取...');
     
-    if (!result.success) {
-        console.error('[获取当前页面评论] 获取失败:', result.error);
+    // ✅ 直接使用精确的评论采集函数
+    const comments = getAllCommentsFromDom();
+    
+    if (!comments || comments.length === 0) {
+        console.log('[获取当前页面评论] 未找到评论或该笔记没有评论');
         return [];
     }
-    
-    const comments = result.comments;
     
     // 在增量采集时，对评论进行去重处理
     const uniqueComments = [];
     const seenComments = new Set();
     
     for (const comment of comments) {
-        // 使用评论内容、用户和时间作为唯一标识，不依赖评论ID
+        // 使用评论内容、用户和时间作为唯一标识
         const commentKey = `${comment.content}_${comment.user}_${comment.time}`;
         if (!seenComments.has(commentKey)) {
             seenComments.add(commentKey);
@@ -1320,7 +1408,44 @@ function getCurrentPageComments() {
         console.log(`[去重] 原始评论数: ${comments.length}, 去重后: ${uniqueComments.length}`);
     }
     
+    console.log(`[获取当前页面评论] 最终返回 ${uniqueComments.length} 条有效评论`);
     return uniqueComments;
+}
+
+// ✅ 新增：获取笔记正文内容（包含话题标签）
+function getNoteContent() {
+  console.log('🔍 获取笔记正文内容...');
+  
+  try {
+    // ✅ 输入验证：检查页面环境
+    if (!document || typeof document.querySelector !== 'function') {
+      console.warn('❌ DOM环境不可用');
+      return '';
+    }
+    
+    // ✅ 正文内容位于 #detail-desc > .note-text 中
+    // 这个结构与评论中的 .note-text 不同，正文在页面主体区域
+    const contentContainer = document.querySelector('#detail-desc .note-text');
+    
+    if (!contentContainer) {
+      console.log('❌ 未找到正文容器(#detail-desc .note-text)');
+      return '';
+    }
+    
+    // ✅ 提取完整正文内容，包括话题标签
+    const content = contentContainer.innerText || contentContainer.textContent || '';
+    
+    // ✅ 数据验证：确保返回值是字符串
+    const result = typeof content === 'string' ? content.trim() : '';
+    
+    console.log(`✅ 获取到正文内容: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`);
+    
+    return result;
+    
+  } catch (error) {
+    console.error('❌ 获取正文内容时发生错误:', error);
+    return '';
+  }
 }
 
 // 新增：获取笔记标题的辅助函数
@@ -1333,6 +1458,13 @@ function getNoteTitle() {
     
     if (titleElement) {
         return titleElement.innerText ? titleElement.innerText.trim() : titleElement.textContent.trim();
+    }
+    
+    // 如果没有找到标题，尝试从正文中获取第一行作为标题
+    const content = getNoteContent();
+    if (content) {
+        const firstLine = content.split('\n')[0];
+        return firstLine.length > 50 ? firstLine.substring(0, 50) + '...' : firstLine;
     }
     
     return document.title || '未知标题';
@@ -1357,6 +1489,11 @@ async function getNoteCommentsFromLocal(noteId) {
     return new Promise(async resolve => {
         const key = await getTodayKey();
         chrome.storage.local.get({ [key]: {} }, function(data) {
+            if (chrome.runtime.lastError) {
+                console.error('❌ 获取笔记评论数据失败:', chrome.runtime.lastError);
+                resolve(null);
+                return;
+            }
             const allData = data[key] || {};
             
             for (const num in allData) {

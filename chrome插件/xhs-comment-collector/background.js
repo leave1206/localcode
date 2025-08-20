@@ -624,7 +624,8 @@ function runMonitorLinksBg() {
     // 保留完整原始链接（含参数），避免分享令牌失效
     const normLink = link;
     
-    chrome.tabs.create({ url: normLink, active: true }, function(tab) {
+    // 🔧 用户体验优化：后台打开标签页，不抢夺用户焦点
+    chrome.tabs.create({ url: normLink, active: false }, function(tab) {
       console.log('[monitor] tabs.create成功', tab.id, normLink);
       const tabId = tab.id;
       tabContexts[tabId] = { link: normLink, startedAt: Date.now() };

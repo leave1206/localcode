@@ -26,35 +26,115 @@ function getYesterdayFormatted(format = 'YYYY-MM-DD') {
 let currentBrandId = null;
 let monitorBrands = [];
 
+// ✅ 性能优化：防抖机制，防止用户快速点击
+let buttonClickDebounce = {
+  toggleMonitor: false,
+  startNow: false,
+  deleteMonitor: false
+};
+
 // 新增：获取品牌监控状态
 function getBrandMonitorStatus(brandId) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // ✅ 数据验证：验证输入参数
+    if (!brandId || typeof brandId !== 'number') {
+      const error = new Error(`无效的brandId: ${brandId}, 类型: ${typeof brandId}`);
+      console.error('❌ getBrandMonitorStatus参数验证失败:', error.message);
+      reject(error);
+      return;
+    }
+    
     chrome.storage.local.get(['brandMonitorStates'], (data) => {
+      // ✅ Chrome API错误处理
+      if (chrome.runtime.lastError) {
+        const error = new Error(`获取brandMonitorStates失败: ${chrome.runtime.lastError.message}`);
+        console.error('❌ getBrandMonitorStatus存储读取失败:', error.message);
+        reject(error);
+        return;
+      }
+      
       const states = data.brandMonitorStates || {};
-      resolve(!!states[brandId]);
+      const status = !!states[brandId];
+      console.log(`🔍 品牌 ${brandId} 监控状态: ${status}`);
+      resolve(status);
     });
   });
 }
 
 // 新增：设置品牌监控状态
 function setBrandMonitorStatus(brandId, enabled) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // ✅ 数据验证：验证输入参数
+    if (!brandId || typeof brandId !== 'number') {
+      const error = new Error(`无效的brandId: ${brandId}, 类型: ${typeof brandId}`);
+      console.error('❌ setBrandMonitorStatus参数验证失败:', error.message);
+      reject(error);
+      return;
+    }
+    
+    if (typeof enabled !== 'boolean') {
+      const error = new Error(`无效的enabled值: ${enabled}, 类型: ${typeof enabled}`);
+      console.error('❌ setBrandMonitorStatus参数验证失败:', error.message);
+      reject(error);
+      return;
+    }
+    
     chrome.storage.local.get(['brandMonitorStates'], (data) => {
+      // ✅ Chrome API错误处理
+      if (chrome.runtime.lastError) {
+        const error = new Error(`获取brandMonitorStates失败: ${chrome.runtime.lastError.message}`);
+        console.error('❌ setBrandMonitorStatus存储读取失败:', error.message);
+        reject(error);
+        return;
+      }
+      
       const states = data.brandMonitorStates || {};
       states[brandId] = enabled;
-      chrome.storage.local.set({ brandMonitorStates: states }, resolve);
+      
+      chrome.storage.local.set({ brandMonitorStates: states }, () => {
+        // ✅ Chrome API错误处理
+        if (chrome.runtime.lastError) {
+          const error = new Error(`保存brandMonitorStates失败: ${chrome.runtime.lastError.message}`);
+          console.error('❌ setBrandMonitorStatus存储写入失败:', error.message);
+          reject(error);
+          return;
+        }
+        
+        console.log(`✅ 品牌 ${brandId} 监控状态已设置为: ${enabled}`);
+        resolve();
+      });
     });
   });
 }
 
 // 新增：全局按钮状态更新函数
 function updateButtonStates() {
+  // 🔧 修复：如果品牌管理还未初始化完成，则跳过更新
+  if (currentBrandId === null && monitorBrands.length === 0) {
+    console.log('⚠️ 品牌管理尚未初始化，跳过按钮状态更新');
+    return;
+  }
+  
+  console.log('🔄 开始更新按钮状态，当前品牌ID:', currentBrandId);
+  
   const toggleMonitorBtn = document.getElementById('toggleMonitorBtn');
   const startNowBtn = document.getElementById('startNowBtn');
   const deleteMonitorBtn = document.getElementById('deleteMonitorBtn');
   const editMonitorBtn = document.getElementById('editMonitorBtn');
   
+  // 安全检查：确保所有按钮元素都存在
+  if (!toggleMonitorBtn || !startNowBtn || !deleteMonitorBtn || !editMonitorBtn) {
+    console.error('❌ 按钮元素未找到:', {
+      toggleMonitorBtn: !!toggleMonitorBtn,
+      startNowBtn: !!startNowBtn,
+      deleteMonitorBtn: !!deleteMonitorBtn,
+      editMonitorBtn: !!editMonitorBtn
+    });
+    return;
+  }
+  
   if (!currentBrandId) {
+    console.log('⚠️ 无当前品牌，禁用所有按钮');
     toggleMonitorBtn.textContent = '▶️ 开启监控';
     toggleMonitorBtn.disabled = true;
     startNowBtn.disabled = true;
@@ -63,16 +143,31 @@ function updateButtonStates() {
     return;
   }
   
+  console.log('✅ 启用所有按钮，品牌ID:', currentBrandId);
   toggleMonitorBtn.disabled = false;
   startNowBtn.disabled = false;
   deleteMonitorBtn.disabled = false;
   editMonitorBtn.disabled = false; // 新增：启用编辑按钮
   
-  // 获取当前品牌的监控状态
-  getBrandMonitorStatus(currentBrandId).then(isMonitorEnabled => {
-    toggleMonitorBtn.textContent = isMonitorEnabled ? '⏸️ 停止监控' : '▶️ 开启监控';
-    // 注意：状态显示由 updateStatusBar 函数统一管理，避免重复设置
-  });
+  // ✅ 完整的Promise处理：获取当前品牌的监控状态
+  (async () => {
+    try {
+      const isMonitorEnabled = await getBrandMonitorStatus(currentBrandId);
+      const buttonText = isMonitorEnabled ? '⏸️ 停止监控' : '▶️ 开启监控';
+      toggleMonitorBtn.textContent = buttonText;
+      console.log('📝 监控按钮文本已更新为:', buttonText, '(监控状态:', isMonitorEnabled, ')');
+      // 注意：状态显示由 updateStatusBar 函数统一管理，避免重复设置
+    } catch (error) {
+      console.error('❌ 获取品牌监控状态失败:', error);
+      // ✅ 错误恢复：出错时设置默认状态
+      toggleMonitorBtn.textContent = '▶️ 开启监控';
+      
+      // ✅ 用户友好的错误提示
+      if (error.message.includes('无效的brandId')) {
+        console.warn('⚠️ 品牌ID无效，可能需要重新选择品牌');
+      }
+    }
+  })();
 }
 
 // 获取当前品牌的存储键
@@ -403,7 +498,7 @@ function renderComments(allData) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // 初始化多品牌管理
+  // 🔧 修复：初始化多品牌管理（不立即调用updateButtonStates避免时序问题）
   initializeBrandManagement();
   
   // 辅助函数：根据日期筛选评论
@@ -460,14 +555,28 @@ document.addEventListener('DOMContentLoaded', function() {
     return excelData;
   }
   
-  // 初始化品牌管理
+  // ✅ 修复：增强品牌管理初始化，优先恢复正在采集的品牌
   function initializeBrandManagement() {
-    chrome.storage.local.get(['monitorBrands'], function(data) {
+    chrome.storage.local.get(['monitorBrands', 'monitorProgress'], function(data) {
       monitorBrands = data.monitorBrands || [];
+      const progress = data.monitorProgress || {};
+      
+      console.log('🚀 初始化品牌管理');
+      console.log('📋 可用品牌:', monitorBrands.map(b => ({id: b.id, name: b.brandName})));
+      console.log('📊 当前进度:', progress);
       
       if (monitorBrands.length > 0) {
-        // 设置当前品牌为最新的品牌
-        currentBrandId = monitorBrands[monitorBrands.length - 1].id;
+        // ✅ 优先恢复正在采集的品牌状态
+        if (progress.brandId && progress.running && monitorBrands.find(b => b.id === progress.brandId)) {
+          console.log(`🔄 恢复正在采集的品牌: ${progress.brandId}`);
+          currentBrandId = progress.brandId;
+        } else {
+          // 设置当前品牌为最新的品牌
+          console.log('🆕 设置为最新品牌');
+          currentBrandId = monitorBrands[monitorBrands.length - 1].id;
+        }
+        
+        console.log(`✅ 当前品牌ID设置为: ${currentBrandId}`);
         
         // 渲染品牌切换器
         renderBrandSwitcher();
@@ -475,9 +584,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // 加载当前品牌的评论数据
         loadCurrentBrandComments();
       } else {
+        console.log('❌ 没有可用品牌');
+        currentBrandId = null;
         // 如果没有品牌，显示默认的评论列表
         renderComments(undefined);
       }
+      
+      // ✅ 确保按钮状态正确初始化（延迟执行，确保数据完全加载）
+      setTimeout(() => {
+        updateButtonStates();
+      }, 100);
     });
   }
 
@@ -498,23 +614,66 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // 检查品牌配置变化
       if (Object.prototype.hasOwnProperty.call(changes, 'monitorBrands')) {
-        monitorBrands = changes.monitorBrands.newValue || [];
+        const newBrands = changes.monitorBrands.newValue || [];
+        console.log('📋 品牌配置变化检测，新品牌列表:', newBrands.map(b => ({id: b.id, name: b.brandName})));
+        console.log('📋 当前品牌ID:', currentBrandId);
+        
+        monitorBrands = newBrands;
         renderBrandSwitcher();
         
-        // 如果当前品牌被删除了，切换到第一个可用的品牌
-        if (currentBrandId && !monitorBrands.find(b => b.id === currentBrandId)) {
-          if (monitorBrands.length > 0) {
-            currentBrandId = monitorBrands[0].id;
-            loadCurrentBrandComments();
+        // ✅ 修复：只有在品牌真正被删除时才切换，避免在采集过程中错误重置
+        if (currentBrandId) {
+          const currentBrandExists = monitorBrands.find(b => b.id === currentBrandId);
+          
+          if (!currentBrandExists) {
+            console.warn('⚠️ 当前品牌被删除，需要切换品牌');
+            if (monitorBrands.length > 0) {
+              const newBrandId = monitorBrands[0].id;
+              console.log(`🔄 切换到新品牌: ${newBrandId} (${monitorBrands[0].brandName})`);
+              currentBrandId = newBrandId;
+              loadCurrentBrandComments();
+            } else {
+              console.log('❌ 没有可用品牌，清空状态');
+              currentBrandId = null;
+              renderComments(undefined);
+            }
           } else {
-            currentBrandId = null;
-            renderComments(undefined);
+            console.log('✅ 当前品牌仍然存在，保持不变');
           }
+        } else if (monitorBrands.length > 0) {
+          // ✅ 修复：如果当前没有选中品牌但有可用品牌，选择第一个
+          console.log('🆕 没有当前品牌，选择第一个可用品牌');
+          currentBrandId = monitorBrands[0].id;
+          loadCurrentBrandComments();
         }
+        
+        // ✅ 确保按钮状态正确更新
+        updateButtonStates();
       }
       
-      // 修复：同步采集进度变化，确保状态栏正确更新
+      // ✅ 修复：同步采集进度变化，确保状态栏正确更新
       if (changes.monitorProgress || changes.brandMonitorStates) {
+        const progress = changes.monitorProgress?.newValue || {};
+        
+        // ✅ 如果有正在运行的采集任务，确保当前品牌与采集品牌一致
+        if (progress.brandId && progress.running && progress.brandId !== currentBrandId) {
+          console.log(`🔄 检测到采集任务品牌变化: ${currentBrandId} → ${progress.brandId}`);
+          
+          // 检查新的品牌是否存在于品牌列表中
+          const targetBrand = monitorBrands.find(b => b.id === progress.brandId);
+          if (targetBrand) {
+            console.log(`✅ 切换到采集任务的品牌: ${targetBrand.brandName}`);
+            currentBrandId = progress.brandId;
+            
+            // 重新渲染界面
+            renderBrandSwitcher();
+            loadCurrentBrandComments();
+            updateButtonStates();
+          } else {
+            console.warn(`⚠️ 采集任务的品牌ID ${progress.brandId} 在当前品牌列表中不存在`);
+          }
+        }
+        
         // 延迟更新状态栏，确保数据完全同步
         setTimeout(() => {
           updateStatusBar();
@@ -534,14 +693,20 @@ document.addEventListener('DOMContentLoaded', function() {
         // 获取当前品牌信息
         const brand = monitorBrands.find(b => b.id === currentBrandId) || {};
         
-        // 在_meta中添加品牌信息
+        // 🔧 统一_meta数据格式，删除noteLinks字段（太长）
         const enhancedData = {
           ...brandData,
           _meta: {
             ...(brandData._meta || {}),
+            brandId: brand.id,
             brandName: brand.brandName || '',
             brandDesc: brand.brandDesc || '',
-            monitorReq: brand.monitorReq || ''
+            monitorReq: brand.monitorReq || '',
+            createdAt: brand.createdAt || Date.now(),
+            totalNoteLinks: brand.noteLinks ? brand.noteLinks.length : 0,
+            // 删除noteLinks字段，避免JSON文件过大
+            // noteLinks: brand.noteLinks,
+            exportTime: new Date().toISOString()
           }
         };
         
@@ -630,14 +795,21 @@ document.addEventListener('DOMContentLoaded', function() {
           // 获取当前品牌信息
           const brand = monitorBrands.find(b => b.id === currentBrandId) || {};
           
-          // 在_meta中添加品牌信息
+          // 🔧 统一_meta数据格式，删除noteLinks字段（太长）
           const enhancedData = {
             ...todayData,
             _meta: {
               ...(todayData._meta || {}),
+              brandId: brand.id,
               brandName: brand.brandName || '',
               brandDesc: brand.brandDesc || '',
-              monitorReq: brand.monitorReq || ''
+              monitorReq: brand.monitorReq || '',
+              createdAt: brand.createdAt || Date.now(),
+              totalNoteLinks: brand.noteLinks ? brand.noteLinks.length : 0,
+              // 删除noteLinks字段，避免JSON文件过大
+              // noteLinks: brand.noteLinks,
+              exportTime: new Date().toISOString(),
+              filterType: 'today'
             }
           };
           
@@ -726,14 +898,21 @@ document.addEventListener('DOMContentLoaded', function() {
           // 获取当前品牌信息
           const brand = monitorBrands.find(b => b.id === currentBrandId) || {};
           
-          // 在_meta中添加品牌信息
+          // 🔧 统一_meta数据格式，删除noteLinks字段（太长）
           const enhancedData = {
             ...yesterdayData,
             _meta: {
               ...(yesterdayData._meta || {}),
+              brandId: brand.id,
               brandName: brand.brandName || '',
               brandDesc: brand.brandDesc || '',
-              monitorReq: brand.monitorReq || ''
+              monitorReq: brand.monitorReq || '',
+              createdAt: brand.createdAt || Date.now(),
+              totalNoteLinks: brand.noteLinks ? brand.noteLinks.length : 0,
+              // 删除noteLinks字段，避免JSON文件过大
+              // noteLinks: brand.noteLinks,
+              exportTime: new Date().toISOString(),
+              filterType: 'yesterday'
             }
           };
           
@@ -925,32 +1104,75 @@ document.addEventListener('DOMContentLoaded', function() {
               brandName: newBrand.brandName,
               brandDesc: newBrand.brandDesc,
               monitorReq: newBrand.monitorReq,
-              noteLinks: newBrand.noteLinks,
               createdAt: newBrand.createdAt,
-              collectionCompletedAt: null
+              totalNoteLinks: newBrand.noteLinks ? newBrand.noteLinks.length : 0,
+              // 删除noteLinks字段，存储在品牌配置中即可
+              // noteLinks: newBrand.noteLinks,
+              collectionCompletedAt: null,
+              version: '2.6.0'
             }
           };
           
-          // 同时保存品牌配置和初始数据
+          // ✅ Chrome API错误处理：同时保存品牌配置和初始数据
           chrome.storage.local.set({
             monitorBrands: brands,
             [brandStorageKey]: initialBrandData
           }, function() {
-            // 更新全局变量
-            monitorBrands = brands;
-            currentBrandId = newBrand.id;
+            // ✅ Chrome API错误处理
+            if (chrome.runtime.lastError) {
+              const errorMsg = `保存品牌数据失败: ${chrome.runtime.lastError.message}`;
+              console.error('❌', errorMsg);
+              alert(`❌ ${errorMsg}\n\n请重试或检查存储空间是否充足`);
+              return;
+            }
             
-            // 刷新UI
-            renderBrandSwitcher();
-            loadCurrentBrandComments();
-            updateStatusBar();
+            console.log('✅ 品牌数据保存成功，开始更新UI状态');
             
-            alert(`✅ 监控信息已保存\n\n品牌/产品名：${brandName}\n品牌介绍：${brandDesc}\n评论分析要求：${monitorReq}\n笔记链接：${links.length}条`);
-            monitorFormModal.style.display = 'none';
-            brandNameInput.value = '';
-            brandDescInput.value = '';
-            monitorReqInput.value = '';
-            noteFileInput.value = '';
+            // ✅ 状态管理：避免竞态条件，使用锁机制
+            const updateLock = { updating: true };
+            
+            try {
+              // 更新全局变量
+              monitorBrands = brands;
+              currentBrandId = newBrand.id;
+              
+              console.log('当前品牌ID已设置为:', currentBrandId);
+              console.log('监控品牌列表:', monitorBrands);
+              
+              // ✅ 状态管理：按顺序执行，确保状态正确同步
+              renderBrandSwitcher();
+              loadCurrentBrandComments();
+              updateStatusBar();
+              
+              // ✅ 状态管理：确保按钮状态更新
+              console.log('强制更新按钮状态...');
+              updateButtonStates();
+              
+              // ✅ 防御性编程：延迟确认，防止异步竞态
+              setTimeout(() => {
+                if (updateLock.updating) {
+                  updateButtonStates();
+                  console.log('按钮状态更新完成');
+                  updateLock.updating = false;
+                }
+              }, 200);
+              
+              // ✅ 用户体验：清晰的成功反馈
+              alert(`✅ 监控信息已保存\n\n品牌/产品名：${brandName}\n品牌介绍：${brandDesc}\n评论分析要求：${monitorReq}\n笔记链接：${links.length}条`);
+              
+              // ✅ 状态清理：重置表单
+              monitorFormModal.style.display = 'none';
+              brandNameInput.value = '';
+              brandDescInput.value = '';
+              monitorReqInput.value = '';
+              noteFileInput.value = '';
+              
+            } catch (uiError) {
+              console.error('❌ UI更新过程中出错:', uiError);
+              updateLock.updating = false;
+              // ✅ 用户友好的错误提示
+              alert('⚠️ 数据保存成功，但界面更新出现问题。请刷新页面重试。');
+            }
           });
         });
         
@@ -1050,10 +1272,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 ...existingData,
                 _meta: {
                   ...(existingData._meta || {}),
+                  brandId: brand.id,
                   brandName: brandName,
                   brandDesc: brandDesc,
                   monitorReq: monitorReq,
-                  noteLinks: links
+                  createdAt: brand.createdAt || Date.now(),
+                  totalNoteLinks: links ? links.length : 0,
+                  // 删除noteLinks字段，存储在品牌配置中即可
+                  // noteLinks: links,
+                  lastUpdated: new Date().toISOString(),
+                  version: '2.6.0'
                 }
               };
               
@@ -1154,85 +1382,146 @@ document.addEventListener('DOMContentLoaded', function() {
   updateButtonStates();
   
   toggleMonitorBtn.onclick = async () => {
-    // 修复：检查当前品牌是否选中
-    if (!currentBrandId) {
-      alert('❌ 请先选择一个品牌');
+    console.log('🔘 开启监控按钮被点击，当前品牌ID:', currentBrandId);
+    console.log('🔘 按钮是否禁用:', toggleMonitorBtn.disabled);
+    
+    // ✅ 性能优化：防抖机制，防止快速重复点击
+    if (buttonClickDebounce.toggleMonitor) {
+      console.log('⚠️ 防抖阻止：监控按钮操作进行中，忽略重复点击');
       return;
     }
+    buttonClickDebounce.toggleMonitor = true;
     
-    // 获取当前品牌的监控状态
-    const currentState = await getBrandMonitorStatus(currentBrandId);
-    const nextState = !currentState;
-    
-    // 设置当前品牌的监控状态
-    await setBrandMonitorStatus(currentBrandId, nextState);
-    
-    // 更新按钮文本
-    toggleMonitorBtn.textContent = nextState ? '⏸️ 停止监控' : '▶️ 开启监控';
-    
-    if (nextState) {
-      // 开启监控：添加到监控队列
-      chrome.runtime.sendMessage({ 
-        type: 'ADD_TO_MONITOR_QUEUE', 
-        brandId: currentBrandId 
-      }, (response) => {
-        console.log(`[监控开关] 品牌 ${currentBrandId} 开启监控响应:`, response);
-        if (response && response.ok) {
-          if (response.added) {
-            console.log(`[监控开关] 品牌 ${currentBrandId} 监控开启成功`);
+    try {
+      // ✅ 数据验证：检查当前品牌是否选中
+      if (!currentBrandId) {
+        console.error('❌ 当前品牌ID为空，无法开启监控');
+        alert('❌ 请先选择一个品牌');
+        return;
+      }
+      
+      console.log('🔘 获取当前品牌监控状态...');
+      
+      let currentState, nextState;
+      try {
+        // ✅ 完整的Promise处理：获取当前品牌的监控状态
+        currentState = await getBrandMonitorStatus(currentBrandId);
+        nextState = !currentState;
+        
+        console.log('🔘 当前监控状态:', currentState, '→ 目标状态:', nextState);
+        
+        // ✅ 完整的Promise处理：设置当前品牌的监控状态
+        await setBrandMonitorStatus(currentBrandId, nextState);
+      } catch (error) {
+        console.error('❌ 监控状态操作失败:', error);
+        // ✅ 用户友好的错误提示
+        alert(`❌ 监控状态更新失败：${error.message}\n\n请重试或检查插件权限`);
+        return;
+      }
+      
+      // 更新按钮文本
+      toggleMonitorBtn.textContent = nextState ? '⏸️ 停止监控' : '▶️ 开启监控';
+      console.log('🔘 按钮文本已更新为:', toggleMonitorBtn.textContent);
+      
+      if (nextState) {
+        console.log('🔘 准备开启监控，发送消息到background...');
+        // 开启监控：添加到监控队列
+        chrome.runtime.sendMessage({ 
+          type: 'ADD_TO_MONITOR_QUEUE', 
+          brandId: currentBrandId 
+        }, (response) => {
+          console.log(`[监控开关] 品牌 ${currentBrandId} 开启监控响应:`, response);
+          if (chrome.runtime.lastError) {
+            console.error(`[监控开关] 通信错误:`, chrome.runtime.lastError);
+            alert(`❌ 监控开启失败：${chrome.runtime.lastError.message}`);
+            // 恢复按钮状态
+            toggleMonitorBtn.textContent = '▶️ 开启监控';
+            setBrandMonitorStatus(currentBrandId, false);
+          } else if (response && response.ok) {
+            if (response.added) {
+              console.log(`[监控开关] 品牌 ${currentBrandId} 监控开启成功`);
+              updateStatusBar();
+            } else {
+              // 修复：即使added为false，只要ok为true就表示操作成功（可能是任务已存在但状态更新成功）
+              console.log(`[监控开关] 品牌 ${currentBrandId} 监控状态更新成功（任务可能已存在）`);
+              updateStatusBar();
+            }
+          } else {
+            // 真正的错误情况
+            console.error(`[监控开关] 品牌 ${currentBrandId} 监控开启失败`);
+            alert(`❌ 监控开启失败，请重试`);
+            // 恢复按钮状态
+            toggleMonitorBtn.textContent = '▶️ 开启监控';
+            setBrandMonitorStatus(currentBrandId, false);
+          }
+        });
+      } else {
+        console.log('🔘 准备停止监控，发送消息到background...');
+        // 停止监控：从监控队列移除
+        chrome.runtime.sendMessage({ 
+          type: 'REMOVE_FROM_MONITOR_QUEUE', 
+          brandId: currentBrandId 
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error(`[监控开关] 通信错误:`, chrome.runtime.lastError);
+            // 通信失败，恢复按钮状态
+            alert(`❌ 停止监控操作失败：${chrome.runtime.lastError.message}`);
+            toggleMonitorBtn.textContent = '⏸️ 停止监控';
+            setBrandMonitorStatus(currentBrandId, true);
+          } else if (response && response.ok) {
+            console.log(`[监控开关] 品牌 ${currentBrandId} 监控停止成功`);
             updateStatusBar();
           } else {
-            // 修复：即使added为false，只要ok为true就表示操作成功（可能是任务已存在但状态更新成功）
-            console.log(`[监控开关] 品牌 ${currentBrandId} 监控状态更新成功（任务可能已存在）`);
-            updateStatusBar();
+            // 操作失败，恢复按钮状态
+            console.error(`[监控开关] 品牌 ${currentBrandId} 监控停止失败`);
+            alert('❌ 停止监控操作失败，请重试');
+            toggleMonitorBtn.textContent = '⏸️ 停止监控';
+            setBrandMonitorStatus(currentBrandId, true);
           }
-        } else {
-          // 真正的错误情况
-          console.error(`[监控开关] 品牌 ${currentBrandId} 监控开启失败`);
-          alert(`❌ 监控开启失败，请重试`);
-          // 恢复按钮状态
-          toggleMonitorBtn.textContent = '▶️ 开启监控';
-          setBrandMonitorStatus(currentBrandId, false);
-        }
-      });
-    } else {
-      // 停止监控：从监控队列移除
-      chrome.runtime.sendMessage({ 
-        type: 'REMOVE_FROM_MONITOR_QUEUE', 
-        brandId: currentBrandId 
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          // 通信失败，恢复按钮状态
-          alert(`❌ 停止监控操作失败：${chrome.runtime.lastError.message}`);
-          toggleMonitorBtn.textContent = '⏸️ 停止监控';
-          setBrandMonitorStatus(currentBrandId, true);
-        } else if (response && response.ok) {
-          updateStatusBar();
-        } else {
-          // 操作失败，恢复按钮状态
-          alert('❌ 停止监控操作失败，请重试');
-          toggleMonitorBtn.textContent = '⏸️ 停止监控';
-          setBrandMonitorStatus(currentBrandId, true);
-        }
-      });
+        });
+      }
+    } catch (unexpectedError) {
+      console.error('❌ 按钮点击处理过程中出现未预期错误:', unexpectedError);
+      alert('❌ 操作失败，请重试');
+    } finally {
+      // ✅ 内存管理：无论成功失败都要重置防抖标记
+      setTimeout(() => {
+        buttonClickDebounce.toggleMonitor = false;
+      }, 1000); // 1秒后允许再次点击
     }
   };
 
   // 立即采集按钮：显式触发 forceNow
   startNowBtn.onclick = () => {
-    // 修复：检查当前品牌是否选中
-    if (!currentBrandId) {
-      alert('❌ 请先选择一个品牌');
+    console.log('⚡ 立即监控按钮被点击，当前品牌ID:', currentBrandId);
+    console.log('⚡ 按钮是否禁用:', startNowBtn.disabled);
+    
+    // ✅ 性能优化：防抖机制，防止快速重复点击
+    if (buttonClickDebounce.startNow) {
+      console.log('⚠️ 防抖阻止：立即采集按钮操作进行中，忽略重复点击');
       return;
     }
+    buttonClickDebounce.startNow = true;
     
+    try {
+      // ✅ 数据验证：检查当前品牌是否选中
+      if (!currentBrandId) {
+        console.error('❌ 当前品牌ID为空，无法立即采集');
+        alert('❌ 请先选择一个品牌');
+        return;
+      }
+    
+    console.log('⚡ 准备立即采集，发送消息到background...');
     // 立即采集不影响监控状态，直接添加到采集队列
     chrome.runtime.sendMessage({ 
       type: 'START_IMMEDIATE_COLLECTION', 
       brandId: currentBrandId 
     }, (response) => {
       console.log(`[立即采集] 品牌 ${currentBrandId} 立即采集响应:`, response);
-      if (response && response.ok) {
+      if (chrome.runtime.lastError) {
+        console.error(`[立即采集] 通信错误:`, chrome.runtime.lastError);
+        alert(`❌ 立即采集失败：${chrome.runtime.lastError.message}`);
+      } else if (response && response.ok) {
         if (response.added) {
           console.log(`[立即采集] 品牌 ${currentBrandId} 立即采集任务添加成功`);
           updateStatusBar();
@@ -1243,10 +1532,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       } else {
         // 真正的错误情况
-        console.error(`[立即采集] 品牌 ${currentBrandId} 立即采集失败`);
+        console.error(`[立即采集] 品牌 ${currentBrandId} 立即采集失败，响应:`, response);
         alert('❌ 立即采集失败，请重试');
       }
     });
+    } catch (unexpectedError) {
+      console.error('❌ 立即采集按钮处理过程中出现未预期错误:', unexpectedError);
+      alert('❌ 立即采集操作失败，请重试');
+    } finally {
+      // ✅ 内存管理：无论成功失败都要重置防抖标记
+      setTimeout(() => {
+        buttonClickDebounce.startNow = false;
+      }, 2000); // 2秒后允许再次点击（立即采集间隔稍长）
+    }
   };
 
   // 删除监控：删除当前选中的品牌监控任务
@@ -1318,10 +1616,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   updateStatusBar();
 
-  // 修复：初始化完成后更新按钮状态
-  setTimeout(() => {
-    updateButtonStates();
-  }, 500);
-
+  // 🔧 移除重复的按钮状态更新（已在initializeBrandManagement中处理）
+  // setTimeout(() => {
+  //   updateButtonStates();
+  // }, 500);
 
 }); 
